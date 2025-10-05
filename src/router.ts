@@ -1,23 +1,18 @@
 import { Router } from "express";
 
-import push from "./push.js";
-import scheduler from "./scheduler.js";
-import store from "./store.js";
-
-/**
- * @typedef {import("./types.js").Notification} Notification
- */
+import scheduler from "./scheduler.ts";
+import type { NotificationEntity } from "./types.ts";
 
 const router = Router();
 
-router.get("/api/ping", (req, res) => {
-  res.send("Ok");
+router.get("/api/health", (req, res) => {
+  res.status(200).send();
 });
 
-router.get("/api/key", (req, res) => {
-  const vapidPublicKey = push.getVapidPublicKey();
-  res.send(vapidPublicKey);
-});
+// router.get("/api/key", (req, res) => {
+//   const vapidPublicKey = push.getVapidPublicKey();
+//   res.send(vapidPublicKey);
+// });
 
 router.post("/api/notifications", async (req, res) => {
   console.log(
@@ -26,8 +21,7 @@ router.post("/api/notifications", async (req, res) => {
     )}`
   );
 
-  /** @type {Notification} */
-  const notification = req.body;
+  const notification = req.body as NotificationEntity;
 
   await scheduler.scheduleNotification(notification);
 
@@ -47,7 +41,7 @@ router.get("/api/notifications/:notificationId", async (req, res) => {
     )}`
   );
 
-  const notificationId = req.params.notificationId;
+  // const notificationId = req.params.notificationId;
 
   res.status(500).send("Not implemented.");
 });
@@ -59,9 +53,9 @@ router.patch("/api/notifications/:notificationId", async (req, res) => {
     )}`
   );
 
-  const notificationId = req.params.notificationId;
+  // const notificationId = req.params.notificationId;
 
-  res.status(500).send("Not implemented.");
+  res.status(500).send({ message: "Not implemented." });
 });
 
 router.delete("/api/notifications/:notificationId", async (req, res) => {
@@ -71,12 +65,14 @@ router.delete("/api/notifications/:notificationId", async (req, res) => {
     )}`
   );
 
-  const notificationId = req.params.notificationId;
-  const notification = await store.findById(notificationId);
+  // const notificationId = req.params.notificationId;
+  // const notification = await store.findById(notificationId);
 
-  await scheduler.cancelNotification(notification);
+  // await scheduler.cancelNotification(notification);
 
-  res.status(204).send();
+  // res.status(204).send();
+
+  res.status(500).send({ message: "Not implemented" });
 });
 
 export default router;

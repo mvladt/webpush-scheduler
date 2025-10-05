@@ -1,17 +1,17 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { rm } from "node:fs/promises";
-import store from "../src/store.js";
+import store from "../src/store.ts";
 import {
   setStoreFile,
   resetStoreFile,
   readStoreFile,
-} from "../src/jsonStoreTools.js";
+} from "../src/jsonStoreTools.ts";
 import {
   createFakeNotification,
   fakeNotification1,
   fakeNotification2,
-} from "./tools.js";
+} from "./tools.ts";
 
 describe("store", () => {
   it("store.save", async () => {

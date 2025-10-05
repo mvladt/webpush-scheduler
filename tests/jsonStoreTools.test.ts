@@ -6,8 +6,8 @@ import {
   writeStoreFile,
   setStoreFile,
   resetStoreFile,
-} from "../src/jsonStoreTools.js";
-import { fakeNotification1 } from "./tools.js";
+} from "../src/jsonStoreTools.ts";
+import { fakeNotification1 } from "./tools.ts";
 
 describe("jsonStoreTools", () => {
   describe("readStoreFile", () => {
@@ -58,7 +58,7 @@ describe("jsonStoreTools", () => {
     await writeStoreFile([fakeNotification1]);
 
     // Assert
-    const notifications = JSON.parse(await readFile(storeFileName));
+    const notifications = JSON.parse(String(await readFile(storeFileName)));
     assert.equal(notifications.length, 1);
     assert.equal(notifications[0].id, fakeNotification1.id);
     assert.equal(notifications[0].payload.text, fakeNotification1.payload.text);

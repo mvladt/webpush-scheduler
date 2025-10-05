@@ -1,7 +1,7 @@
 import express from "express";
 
-import router from "./router.js";
-import scheduler from "./scheduler.js";
+import router from "./router.ts";
+import scheduler from "./scheduler.ts";
 
 const app = express();
 

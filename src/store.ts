@@ -1,10 +1,7 @@
-import { readStoreFile, writeStoreFile } from "./jsonStoreTools.js";
+import { readStoreFile, writeStoreFile } from "./jsonStoreTools.ts";
+import type { NotificationEntity } from "./types.js";
 
-/**
- * @typedef {import("./types.js").Notification} Notification
- */
-
-const save = async (notification) => {
+const save = async (notification: NotificationEntity): Promise<void> => {
   const oldArray = await readStoreFile();
 
   const newArray = [...oldArray, notification];
@@ -12,11 +9,7 @@ const save = async (notification) => {
   await writeStoreFile(newArray);
 };
 
-/**
- * @param {Notification} notification
- * @returns {Promise<void>}
- */
-const remove = async (notification) => {
+const remove = async (notification: NotificationEntity): Promise<void> => {
   const oldArray = await readStoreFile();
 
   const newArray = oldArray.filter((n) => n.id !== notification.id);
@@ -24,11 +17,9 @@ const remove = async (notification) => {
   await writeStoreFile(newArray);
 };
 
-/**
- * @param {Notification[]} notifications
- * @returns {Promise<void>}
- */
-const removeMany = async (notifications) => {
+const removeMany = async (
+  notifications: NotificationEntity[]
+): Promise<void> => {
   const oldArray = await readStoreFile();
 
   const newArray = oldArray.filter(
@@ -40,9 +31,8 @@ const removeMany = async (notifications) => {
 
 /**
  * Возвращает уведомления, запланированные на промежуток времени от "сейчас" до "сейчас" + 2 минуты.
- * @returns {Promise<Notification[]>}
  */
-const getNotificationsForNow = async () => {
+const getNotificationsForNow = async (): Promise<NotificationEntity[]> => {
   const oldArray = await readStoreFile();
   const result = oldArray.filter(isNotificationForNow);
   return result;
@@ -50,10 +40,8 @@ const getNotificationsForNow = async () => {
 
 /**
  * Проверка, соответствует ли дата уведомления промежутку от "сейчас" до "сейчас" + 2 минуты.
- * @param {Notification} notification
- * @returns {Boolean}
  */
-const isNotificationForNow = (notification) => {
+const isNotificationForNow = (notification: NotificationEntity): boolean => {
   const notificationDate = new Date(notification.datetime);
   const currentDate = new Date();
 
@@ -69,8 +57,10 @@ const isNotificationForNow = (notification) => {
 };
 
 // TODO: Либо удалить это (если не нужно), либо написать тесты.
-const getNotificationsByTaskId = async (taskId) => {
-  const oldArray = await readStoreFile();
+const getNotificationsByTaskId = async (
+  taskId: string
+): Promise<NotificationEntity[]> => {
+  const oldArray = (await readStoreFile()) as NotificationEntity[];
   const result = oldArray.filter((n) => n.payload.id === taskId);
   return result;
 };

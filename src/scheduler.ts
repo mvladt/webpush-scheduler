@@ -1,29 +1,30 @@
-import store from "./store.js";
-import push from "./push.js";
-
-/**
- * @typedef {import("./types.js").Notification} Notification
- */
+import store from "./store.ts";
+import push from "./push.ts";
+import type { NotificationEntity } from "./types.ts";
 
 const INTERVAL = 1000 * 2; // 2 секунды
 
-let isRunning = false;
-let timeoutId = null;
+type SchedulerState = {
+  isRunning: boolean;
+  timeoutId?: NodeJS.Timeout;
+};
+
+const state: SchedulerState = {
+  isRunning: false,
+};
 
 const scheduler = {
   /**
    * Запланировать уведомление.
-   * @param {Notification} notification
    */
-  async scheduleNotification(notification) {
+  async scheduleNotification(notification: NotificationEntity): Promise<void> {
     await store.save(notification);
     console.log("Notification is scheduled.");
   },
   /**
    * Убрать уведомление из плана.
-   * @param {Notification} notification
    */
-  async cancelNotification(notification) {
+  async cancelNotification(notification: NotificationEntity): Promise<void> {
     await store.remove(notification);
     console.log("Notification is canceled.");
   },
@@ -31,9 +32,9 @@ const scheduler = {
    * Запустить цикл планировщика уведомлений.
    */
   run() {
-    if (isRunning) throw new Error("Scheduler is already running.");
-    isRunning = true;
-    timeoutId = setInterval(work, INTERVAL);
+    if (state.isRunning) throw new Error("Scheduler is already running.");
+    state.isRunning = true;
+    state.timeoutId = setInterval(work, INTERVAL);
     console.log("Scheduler is running.");
   },
 
@@ -41,18 +42,17 @@ const scheduler = {
    * Остановить цикл планировщика цведомлений.
    */
   stop() {
-    if (!isRunning) throw new Error("Scheduler is not running.");
-    clearInterval(timeoutId);
-    isRunning = false;
+    if (!state.isRunning) throw new Error("Scheduler is not running.");
+    clearInterval(state.timeoutId);
+    state.isRunning = false;
     console.log("Scheduler is stopping.");
   },
 };
 
 /**
  * Единица работы, выполняемая за проход цикла пранировщика.
- * @return {Promise<void>}
  */
-const work = async () => {
+const work = async (): Promise<void> => {
   const notifications = await store.getNotificationsForNow();
 
   // В этом месте может быть проблема, если операции не выполнятся до следующего запуска work(), через INTERVAL.

@@ -1,5 +1,7 @@
 import webpush from "web-push";
 
+import type { NotificationEntity } from "./types.ts";
+
 const vapidSubject = process.env.VAPID_SUBJECT;
 const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
@@ -9,7 +11,7 @@ if (!vapidSubject || !vapidPublicKey || !vapidPrivateKey)
 
 webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
 
-const sendOne = async (notification) => {
+const sendOne = async (notification: NotificationEntity): Promise<void> => {
   try {
     const result = await webpush.sendNotification(
       notification.subscription,
@@ -17,14 +19,12 @@ const sendOne = async (notification) => {
     );
     console.log(`Notification send. Result status code: ${result.statusCode}.`);
   } catch (error) {
-    console.log(
-      `Error when sending. Notification id: ${notification.id}.`
-    );
+    console.log(`Error when sending. Notification id: ${notification.id}.`);
     console.error(error);
   }
 };
 
-const sendMany = async (notifications) => {
+const sendMany = async (notifications: NotificationEntity[]): Promise<void> => {
   const promises = notifications.map(async (notification) => {
     await sendOne(notification);
   });
