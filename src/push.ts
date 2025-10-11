@@ -2,6 +2,12 @@ import webpush from "web-push";
 
 import type { NotificationEntity } from "./types.ts";
 
+export interface WebPushModule {
+  sendOne(notitification: NotificationEntity): Promise<void>;
+  sendMany(notificationList: NotificationEntity[]): Promise<void>;
+  getVapidPublicKey(): string;
+}
+
 const vapidSubject = process.env.VAPID_SUBJECT;
 const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
@@ -35,7 +41,7 @@ const getVapidPublicKey = () => {
   return vapidPublicKey;
 };
 
-const push = {
+const push: WebPushModule = {
   sendOne,
   sendMany,
   getVapidPublicKey,

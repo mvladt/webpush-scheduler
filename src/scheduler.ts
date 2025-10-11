@@ -1,6 +1,6 @@
-import store from "./store.ts";
-import push from "./push.ts";
-import type { NotificationEntity } from "./types.ts";
+import jsonStore from "./jsonStore.ts";
+import push, { type WebPushModule } from "./push.ts";
+import type { NotificationEntity, NotificationStore } from "./types.ts";
 
 const INTERVAL = 1000 * 2; // 2 секунды
 
@@ -9,8 +9,18 @@ type SchedulerState = {
   timeoutId?: NodeJS.Timeout;
 };
 
+type SchedulerDependencies = {
+  store: NotificationStore;
+  push: WebPushModule;
+};
+
 const state: SchedulerState = {
   isRunning: false,
+};
+
+const deps: SchedulerDependencies = {
+  store: jsonStore,
+  push: push,
 };
 
 const scheduler = {
@@ -18,14 +28,14 @@ const scheduler = {
    * Запланировать уведомление.
    */
   async scheduleNotification(notification: NotificationEntity): Promise<void> {
-    await store.save(notification);
+    await deps.store.saveOne(notification);
     console.log("Notification is scheduled.");
   },
   /**
    * Убрать уведомление из плана.
    */
   async cancelNotification(notification: NotificationEntity): Promise<void> {
-    await store.remove(notification);
+    await deps.store.removeOne(notification);
     console.log("Notification is canceled.");
   },
   /**
@@ -53,11 +63,11 @@ const scheduler = {
  * Единица работы, выполняемая за проход цикла пранировщика.
  */
 const work = async (): Promise<void> => {
-  const notifications = await store.getNotificationsForNow();
+  const notifications = await deps.store.getAllForNow();
 
   // В этом месте может быть проблема, если операции не выполнятся до следующего запуска work(), через INTERVAL.
-  await push.sendMany(notifications);
-  await store.removeMany(notifications);
+  await deps.push.sendMany(notifications);
+  await deps.store.removeMany(notifications);
 
   console.log("Scheduler work. Time: ", new Date().toISOString());
 };

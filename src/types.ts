@@ -5,4 +5,10 @@ export type NotificationEntity = {
   subscription: PushSubscriptionJSON; // Кому отправлять.
 };
 
-export interface Store {}
+export interface NotificationStore {
+  saveOne(notification: NotificationEntity): Promise<void>;
+  removeOne(notification: NotificationEntity): Promise<void>;
+  removeMany(notificationList: NotificationEntity[]): Promise<void>;
+  getOneById(notificationId: string): Promise<NotificationEntity>;
+  getAllForNow(): Promise<NotificationEntity[]>;
+}

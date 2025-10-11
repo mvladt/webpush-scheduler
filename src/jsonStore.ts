@@ -1,5 +1,5 @@
 import { readStoreFile, writeStoreFile } from "./jsonStoreTools.ts";
-import type { NotificationEntity } from "./types.js";
+import type { NotificationEntity, NotificationStore } from "./types.ts";
 
 const save = async (notification: NotificationEntity): Promise<void> => {
   const oldArray = await readStoreFile();
@@ -65,12 +65,19 @@ const getNotificationsByTaskId = async (
   return result;
 };
 
-const store = {
-  save,
-  remove,
-  removeMany,
-  getNotificationsForNow,
-  getNotificationsByTaskId,
+// TODO: Написать тесты.
+const getOneById = async (notificationId) => {
+  const oldArray = (await readStoreFile()) as NotificationEntity[];
+  const result = oldArray.find((n) => n.id === notificationId);
+  return result;
 };
 
-export default store;
+const jsonStore: NotificationStore = {
+  saveOne: save,
+  removeOne: remove,
+  removeMany,
+  getOneById,
+  getAllForNow: getNotificationsForNow,
+};
+
+export default jsonStore;

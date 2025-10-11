@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { rm } from "node:fs/promises";
-import store from "../src/store.ts";
+import store from "../src/jsonStore.ts";
 import {
   setStoreFile,
   resetStoreFile,
@@ -14,7 +14,7 @@ import {
 } from "./tools.ts";
 
 describe("store", () => {
-  it("store.save", async () => {
+  it("store.saveOne", async () => {
     const storeFileName = "testData-201.json";
     setStoreFile(storeFileName);
 
@@ -22,7 +22,7 @@ describe("store", () => {
     // –
 
     // Act
-    await store.save(fakeNotification1);
+    await store.saveOne(fakeNotification1);
 
     const storeData = await readStoreFile();
     await rm(storeFileName);
@@ -33,15 +33,15 @@ describe("store", () => {
     assert.equal(storeData[0].id, fakeNotification1.id);
   });
 
-  it("store.remove", async () => {
+  it("store.removeOne", async () => {
     const storeFileName = "testData-202.json";
     setStoreFile(storeFileName);
 
     // Arrange
-    await store.save(fakeNotification1);
+    await store.saveOne(fakeNotification1);
 
     // Act
-    await store.remove(fakeNotification1);
+    await store.removeOne(fakeNotification1);
 
     const storeData = await readStoreFile();
     await rm(storeFileName);
@@ -56,8 +56,8 @@ describe("store", () => {
     setStoreFile(storeFileName);
 
     // Arrange
-    await store.save(fakeNotification1);
-    await store.save(fakeNotification2);
+    await store.saveOne(fakeNotification1);
+    await store.saveOne(fakeNotification2);
 
     // Act
     await store.removeMany([fakeNotification1, fakeNotification2]);
@@ -70,7 +70,7 @@ describe("store", () => {
     assert.equal(storeData.length, 0);
   });
 
-  describe("store.getNotificationsForNow", () => {
+  describe("store.getAllForNow", () => {
     it('Выдает уведомление с датой "сейчас плюс 1 мин."', async () => {
       const storeFileName = "testData-204.json";
       setStoreFile(storeFileName);
@@ -79,11 +79,11 @@ describe("store", () => {
       const oneMinuteForward = new Date(Date.now() + 1000 * 60).toISOString();
       const fakeNotification = createFakeNotification();
       const fakeNotificationForNow = createFakeNotification(oneMinuteForward);
-      await store.save(fakeNotification);
-      await store.save(fakeNotificationForNow);
+      await store.saveOne(fakeNotification);
+      await store.saveOne(fakeNotificationForNow);
 
       // Act
-      const notificationsForNow = await store.getNotificationsForNow();
+      const notificationsForNow = await store.getAllForNow();
 
       await rm(storeFileName);
       resetStoreFile();
@@ -110,10 +110,10 @@ describe("store", () => {
         ).toISOString();
         const fakeNotificationThatExpored =
           createFakeNotification(oneMinuteBackward);
-        await store.save(fakeNotificationThatExpored);
+        await store.saveOne(fakeNotificationThatExpored);
 
         // Act
-        const notificationsForNow = await store.getNotificationsForNow();
+        const notificationsForNow = await store.getAllForNow();
 
         await rm(storeFileName);
         resetStoreFile();
