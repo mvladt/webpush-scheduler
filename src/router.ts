@@ -1,5 +1,6 @@
 import { Router } from "express";
 
+import push from "./push.ts";
 import scheduler from "./scheduler.ts";
 import type { NotificationEntity } from "./types.ts";
 
@@ -9,10 +10,12 @@ router.get("/api/health", (req, res) => {
   res.status(200).send();
 });
 
-// router.get("/api/key", (req, res) => {
-//   const vapidPublicKey = push.getVapidPublicKey();
-//   res.send(vapidPublicKey);
-// });
+router.get("/api/key", (req, res) => {
+  console.log(`Received a GET. \n\tEndpoint: ${req.url}`);
+
+  const vapidPublicKey = push.getVapidPublicKey();
+  res.send(vapidPublicKey);
+});
 
 router.post("/api/notifications", async (req, res) => {
   console.log(
