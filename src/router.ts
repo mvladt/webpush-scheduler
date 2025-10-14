@@ -23,12 +23,12 @@ router.post("/api/notifications", async (req, res) => {
       req.body
     )}`
   );
+  if (!req.body) return res.status(400).send("Body is required");
 
   const notification = req.body as NotificationEntity;
-
   await scheduler.scheduleNotification(notification);
 
-  res.status(201).send();
+  return res.status(201).send();
 });
 
 router.get("/api/notifications", async (req, res) => {
