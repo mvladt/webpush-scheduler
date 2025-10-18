@@ -1,9 +1,11 @@
 import express from "express";
+import cors from "cors";
 
 import router from "./router.ts";
 import scheduler from "./scheduler.ts";
 
 const app = express();
+app.use(cors());
 
 const port = process.env.PORT;
 
