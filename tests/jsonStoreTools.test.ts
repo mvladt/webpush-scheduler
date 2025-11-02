@@ -1,70 +1,60 @@
-import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import assert from "node:assert/strict";
 import { readFile, rm, writeFile } from "node:fs/promises";
-import {
-  readStoreFile,
-  writeStoreFile,
-  setStoreFile,
-  resetStoreFile,
-} from "../src/jsonStoreTools.ts";
-import { fakeNotification1 } from "./tools.ts";
+
+import jsonStoreTools from "../src/jsonStoreTools.ts";
+import { createFakeNotification, dumbUUID } from "./tools.ts";
 
 describe("jsonStoreTools", () => {
   describe("readStoreFile", () => {
     it("Возвращает значение, когда файл существует.", async () => {
       // Arrange
-      const storeFileName = "testData-101.json";
-      setStoreFile(storeFileName);
-      await writeFile(storeFileName, JSON.stringify([fakeNotification1]));
+      const fileName = `testData-${dumbUUID()}.json`;
+      const notification = createFakeNotification();
+      await writeFile(fileName, JSON.stringify([notification]));
 
       // Act
-      const notifications = await readStoreFile();
+      const notifications = await jsonStoreTools.readStoreFile(fileName);
 
       // Assert
       assert.equal(notifications.length, 1);
-      assert.equal(notifications[0].id, fakeNotification1.id);
-      assert.equal(
-        notifications[0].payload.text,
-        fakeNotification1.payload.text
-      );
+      assert.equal(notifications[0].id, notification.id);
+      assert.equal(notifications[0].payload.text, notification.payload.text);
 
       // Clean
-      await rm(storeFileName);
-      resetStoreFile();
+      await rm(fileName);
     });
 
     it("Возвращает значение, когда файла нет.", async () => {
       // Arrange
-      const storeFileName = "testData-102.json";
-      setStoreFile(storeFileName);
+      const fileName = `testData-${dumbUUID()}.json`;
 
       // Act
-      const notifications = await readStoreFile();
+      const notifications = await jsonStoreTools.readStoreFile(fileName);
 
       // Assert
       assert.equal(notifications.length, 0);
 
       // Clean
-      resetStoreFile();
+      // Не нужет, т.к. файла нет.
     });
-  });
 
-  it("writeStoreFile", async () => {
-    // Arrange
-    const storeFileName = "testData-103.json";
-    setStoreFile(storeFileName);
+    it("writeStoreFile", async () => {
+      // Arrange
+      const fileName = `testData-${dumbUUID()}.json`;
+      const notification = createFakeNotification();
 
-    // Act
-    await writeStoreFile([fakeNotification1]);
+      // Act
+      await jsonStoreTools.writeStoreFile(fileName, [notification]);
 
-    // Assert
-    const notifications = JSON.parse(String(await readFile(storeFileName)));
-    assert.equal(notifications.length, 1);
-    assert.equal(notifications[0].id, fakeNotification1.id);
-    assert.equal(notifications[0].payload.text, fakeNotification1.payload.text);
+      // Assert
+      const notifications = JSON.parse(String(await readFile(fileName)));
+      assert.equal(notifications.length, 1);
+      assert.equal(notifications[0].id, notification.id);
+      assert.equal(notifications[0].payload.text, notification.payload.text);
 
-    // Clean
-    await rm(storeFileName);
-    resetStoreFile();
+      // Clean
+      await rm(fileName);
+    });
   });
 });

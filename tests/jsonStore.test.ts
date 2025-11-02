@@ -1,126 +1,106 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { rm } from "node:fs/promises";
-import store from "../src/jsonStore.ts";
-import {
-  setStoreFile,
-  resetStoreFile,
-  readStoreFile,
-} from "../src/jsonStoreTools.ts";
-import {
-  createFakeNotification,
-  fakeNotification1,
-  fakeNotification2,
-} from "./tools.ts";
 
-describe("store", () => {
-  it("store.saveOne", async () => {
-    const storeFileName = "testData-201.json";
-    setStoreFile(storeFileName);
+import { createFakeNotification, dumbUUID } from "./tools.ts";
+import { createJsonStore } from "../src/jsonStore.ts";
 
+describe("jsonStore", () => {
+  it("saveOne", async () => {
     // Arrange
-    // –
+    const testFile = `testData-${dumbUUID()}.json`;
+    const store = createJsonStore(testFile);
+    const notification = createFakeNotification();
 
     // Act
-    await store.saveOne(fakeNotification1);
-
-    const storeData = await readStoreFile();
-    await rm(storeFileName);
-    resetStoreFile();
+    await store.saveOne(notification);
 
     // Assert
-    assert.equal(storeData.length, 1);
-    assert.equal(storeData[0].id, fakeNotification1.id);
+    const stored = await store.getOneById(notification.id);
+    assert.ok(stored);
+
+    // Clean
+    await rm(testFile);
   });
 
-  it("store.removeOne", async () => {
-    const storeFileName = "testData-202.json";
-    setStoreFile(storeFileName);
-
+  it("removeOne", async () => {
     // Arrange
-    await store.saveOne(fakeNotification1);
+    const testFile = `testData-${dumbUUID()}.json`;
+    const store = createJsonStore(testFile);
+    const notification = createFakeNotification();
+    await store.saveOne(notification);
 
     // Act
-    await store.removeOne(fakeNotification1);
-
-    const storeData = await readStoreFile();
-    await rm(storeFileName);
-    resetStoreFile();
+    await store.removeOne(notification);
 
     // Assert
-    assert.equal(storeData.length, 0);
+    const nothing = await store.getOneById(notification.id);
+    assert.equal(nothing, undefined);
+
+    // Clean
+    await rm(testFile);
   });
 
-  it("store.removeMany", async () => {
-    const storeFileName = "testData-203.json";
-    setStoreFile(storeFileName);
-
+  it("removeMany", async () => {
     // Arrange
-    await store.saveOne(fakeNotification1);
-    await store.saveOne(fakeNotification2);
+    const testFile = `testData-${dumbUUID()}.json`;
+    const store = createJsonStore(testFile);
+    const notification1 = createFakeNotification();
+    const notification2 = createFakeNotification();
+    await store.saveOne(notification1);
+    await store.saveOne(notification2);
 
     // Act
-    await store.removeMany([fakeNotification1, fakeNotification2]);
-
-    const storeData = await readStoreFile();
-    await rm(storeFileName);
-    resetStoreFile();
+    await store.removeMany([notification1, notification2]);
 
     // Assert
-    assert.equal(storeData.length, 0);
+    const nothing1 = await store.getOneById(notification1.id);
+    const nothing2 = await store.getOneById(notification2.id);
+    assert.equal(nothing1, undefined);
+    assert.equal(nothing2, undefined);
+
+    // Clean
+    await rm(testFile);
   });
 
-  describe("store.getAllForNow", () => {
+  describe("getAllForNow", () => {
     it('Выдает уведомление с датой "сейчас плюс 1 мин."', async () => {
-      const storeFileName = "testData-204.json";
-      setStoreFile(storeFileName);
-
       // Arrange
+      const testFile = `testData-${dumbUUID()}.json`;
+      const store = createJsonStore(testFile);
       const oneMinuteForward = new Date(Date.now() + 1000 * 60).toISOString();
-      const fakeNotification = createFakeNotification();
-      const fakeNotificationForNow = createFakeNotification(oneMinuteForward);
-      await store.saveOne(fakeNotification);
-      await store.saveOne(fakeNotificationForNow);
+      const notification = createFakeNotification();
+      const notificationForNow = createFakeNotification(oneMinuteForward);
+      await store.saveOne(notification);
+      await store.saveOne(notificationForNow);
 
       // Act
       const notificationsForNow = await store.getAllForNow();
 
-      await rm(storeFileName);
-      resetStoreFile();
-
       // Assert
       assert.equal(notificationsForNow.length, 1);
-      assert.equal(notificationsForNow[0].id, fakeNotificationForNow.id);
-      assert.equal(
-        notificationsForNow[0].payload.datetime,
-        fakeNotificationForNow.payload.datetime
-      );
+      assert.equal(notificationsForNow[0].id, notificationForNow.id);
+
+      // Clean
+      await rm(testFile);
     });
 
-    it(
-      'Не выдает уведомление с датой "сейчас минус 1 мин."',
-      { skip: true },
-      async () => {
-        const storeFileName = "testData-205.json";
-        setStoreFile(storeFileName);
+    it('Не выдает уведомление с датой "сейчас минус 1 мин."', async () => {
+      // Arrange
+      const testFile = `testData-${dumbUUID()}.json`;
+      const store = createJsonStore(testFile);
+      const oneMinuteBackward = new Date(Date.now() - 1000 * 60).toISOString();
+      const expiredNotification = createFakeNotification(oneMinuteBackward);
+      await store.saveOne(expiredNotification);
 
-        // Arrange
-        const oneMinuteBackward = new Date(
-          Date.now() - 1000 * 60
-        ).toISOString();
-        const fakeNotificationThatExpored =
-          createFakeNotification(oneMinuteBackward);
-        await store.saveOne(fakeNotificationThatExpored);
+      // Act
+      const notificationsForNow = await store.getAllForNow();
 
-        // Act
-        const notificationsForNow = await store.getAllForNow();
+      // Assert
+      assert.equal(notificationsForNow.length, 0);
 
-        await rm(storeFileName);
-        resetStoreFile();
-
-        // Assert
-        assert.equal(notificationsForNow.length, 0);
-      }
-    );
+      // Clean
+      await rm(testFile);
+    });
   });
 });
