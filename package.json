@@ -2,6 +2,8 @@
   "name": "webpush-scheduler",
   "type": "module",
   "scripts": {
+    "setup": "npm ci",
+    "start": "node --env-file .env src/main.ts",
     "dev": "node --env-file .env --watch src/main.ts",
     "test": "node --test tests/**/*.test.ts"
   },
@@ -12,5 +14,8 @@
   },
   "devDependencies": {
     "@types/node": "^24.6.2"
+  },
+  "engines": {
+    "node": ">= 22.6.0"
   }
 }
