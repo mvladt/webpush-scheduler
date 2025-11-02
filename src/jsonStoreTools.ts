@@ -1,20 +1,8 @@
-import { readFile, writeFile, access } from "node:fs/promises";
+import { access, readFile, writeFile } from "node:fs/promises";
 import type { NotificationEntity } from "./types.ts";
 
-const DEFAULT_FILE_NAME = "data.json";
-
-let file = DEFAULT_FILE_NAME;
-
-export const setStoreFile = (newFile): void => {
-  file = newFile;
-};
-
-export const resetStoreFile = (): void => {
-  file = DEFAULT_FILE_NAME;
-};
-
-export const readStoreFile = async (): Promise<NotificationEntity[]> => {
-  if (await isFileExists()) {
+const readStoreFile = async (file: string): Promise<NotificationEntity[]> => {
+  if (await isFileExists(file)) {
     const string = String(await readFile(file));
     const array = JSON.parse(string);
     return array;
@@ -23,12 +11,15 @@ export const readStoreFile = async (): Promise<NotificationEntity[]> => {
   }
 };
 
-export const writeStoreFile = async (array): Promise<void> => {
+const writeStoreFile = async (
+  file: string,
+  array: NotificationEntity[]
+): Promise<void> => {
   const string = JSON.stringify(array);
   await writeFile(file, string);
 };
 
-const isFileExists = async (): Promise<boolean> => {
+const isFileExists = async (file: string): Promise<boolean> => {
   try {
     await access(file);
     return true;
@@ -36,3 +27,11 @@ const isFileExists = async (): Promise<boolean> => {
     return false;
   }
 };
+
+const jsonStoreTools = {
+  readStoreFile,
+  writeStoreFile,
+  isFileExists,
+};
+
+export default jsonStoreTools;

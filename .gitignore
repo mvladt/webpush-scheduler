@@ -1,3 +1,5 @@
 node_modules
 .env
 data.json
+testData*.json
+experiment*.ts

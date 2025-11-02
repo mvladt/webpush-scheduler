@@ -1,4 +1,4 @@
-import jsonStore from "./jsonStore.ts";
+import { createJsonStore } from "./jsonStore.ts";
 import push, { type WebPushModule } from "./push.ts";
 import type { NotificationEntity, NotificationStore } from "./types.ts";
 
@@ -19,7 +19,7 @@ const state: SchedulerState = {
 };
 
 const deps: SchedulerDependencies = {
-  store: jsonStore,
+  store: createJsonStore(),
   push: push,
 };
 
