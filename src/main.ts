@@ -7,7 +7,7 @@ import scheduler from "./scheduler.ts";
 const app = express();
 app.use(cors());
 
-const port = process.env.PORT;
+const port = process.env.PORT || 3001;
 
 app.use(express.json());
 app.use(router);
