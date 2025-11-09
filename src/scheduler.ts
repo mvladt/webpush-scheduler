@@ -1,18 +1,13 @@
 import { createJsonStore } from "./jsonStore.ts";
-import push, { type WebPushModule } from "./push.ts";
-import type { NotificationEntity, NotificationStore } from "./types.ts";
+import push from "./push.ts";
+import type {
+  NotificationEntity,
+  NotificationScheduler,
+  SchedulerDependencies,
+  SchedulerState,
+} from "./types.ts";
 
 const INTERVAL = 1000 * 2; // 2 секунды
-
-type SchedulerState = {
-  isRunning: boolean;
-  timeoutId?: NodeJS.Timeout;
-};
-
-type SchedulerDependencies = {
-  store: NotificationStore;
-  push: WebPushModule;
-};
 
 const state: SchedulerState = {
   isRunning: false,
@@ -23,24 +18,17 @@ const deps: SchedulerDependencies = {
   push: push,
 };
 
-const scheduler = {
-  /**
-   * Запланировать уведомление.
-   */
+const scheduler: NotificationScheduler = {
   async scheduleNotification(notification: NotificationEntity): Promise<void> {
     await deps.store.saveOne(notification);
     console.log("Notification is scheduled.");
   },
-  /**
-   * Убрать уведомление из плана.
-   */
+
   async cancelNotification(notification: NotificationEntity): Promise<void> {
     await deps.store.removeOne(notification);
     console.log("Notification is canceled.");
   },
-  /**
-   * Запустить цикл планировщика уведомлений.
-   */
+
   run() {
     if (state.isRunning) throw new Error("Scheduler is already running.");
     state.isRunning = true;
@@ -48,9 +36,6 @@ const scheduler = {
     console.log("Scheduler is running.");
   },
 
-  /**
-   * Остановить цикл планировщика цведомлений.
-   */
   stop() {
     if (!state.isRunning) throw new Error("Scheduler is not running.");
     clearInterval(state.timeoutId);
