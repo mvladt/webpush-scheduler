@@ -6,21 +6,57 @@ import { createFakeNotification, dumbUUID } from "./tools.ts";
 import { createJsonStore } from "../src/jsonStore.ts";
 
 describe("jsonStore", () => {
-  it("saveOne", async () => {
-    // Arrange
-    const testFile = `testData-${dumbUUID()}.json`;
-    const store = createJsonStore(testFile);
-    const notification = createFakeNotification();
+  describe("saveOne", () => {
+    it("Базово сохраняет уведомление.", async () => {
+      // Arrange
+      const testFile = `testData-${dumbUUID()}.json`;
+      const store = createJsonStore(testFile);
+      const notification = createFakeNotification();
 
-    // Act
-    await store.saveOne(notification);
+      // Act
+      await store.saveOne(notification);
 
-    // Assert
-    const stored = await store.getOneById(notification.id);
-    assert.ok(stored);
+      // Assert
+      const stored = await store.getOneById(notification.id);
+      assert.ok(stored);
 
-    // Clean
-    await rm(testFile);
+      // Clean
+      await rm(testFile);
+    });
+
+    it("Не сохраняет уведомление с пустой датой.", async () => {
+      // Arrange
+      const testFile = `testData-${dumbUUID()}.json`;
+      const store = createJsonStore(testFile);
+      const incorrectDatetime = "";
+      const notification = createFakeNotification(incorrectDatetime);
+
+      // Act
+      // Assert
+      await assert.rejects(async () => {
+        await store.saveOne(notification);
+      });
+
+      // Clean
+      // Не нужен, т.к. файла нет.
+    });
+
+    it("Не сохраняет уведомление с некорректной датой.", async () => {
+      // Arrange
+      const testFile = `testData-${dumbUUID()}.json`;
+      const store = createJsonStore(testFile);
+      const incorrectDatetime = "itsNotDate";
+      const notification = createFakeNotification(incorrectDatetime);
+
+      // Act
+      // Assert
+      await assert.rejects(async () => {
+        await store.saveOne(notification);
+      });
+
+      // Clean
+      // Не нужен, т.к. файла нет.
+    });
   });
 
   it("removeOne", async () => {

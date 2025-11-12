@@ -8,6 +8,17 @@ export const createJsonStore = (
 ): NotificationStore => {
   const store: NotificationStore = {
     async saveOne(notification) {
+      // Валидация
+      // TODO: Вынести в отдельный модуль.
+      if (!notification.datetime) {
+        throw new Error("Параметр 'datetime' — обязательный.");
+      }
+      if (String(new Date(notification.datetime)) === "Invalid Date") {
+        throw new Error(
+          "Параметр 'datetime' — значение некорректно. Должно быть в формате `YYYY-MM-DDTHH:mm:ss.sssZ`."
+        );
+      }
+
       const oldArray = await jsonStoreTools.readStoreFile(file);
       const newArray = [...oldArray, notification];
       await jsonStoreTools.writeStoreFile(file, newArray);
