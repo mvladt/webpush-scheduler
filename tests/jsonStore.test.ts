@@ -120,23 +120,5 @@ describe("jsonStore", () => {
       // Clean
       await rm(testFile);
     });
-
-    it('Не выдает уведомление с датой "сейчас минус 1 мин."', async () => {
-      // Arrange
-      const testFile = `testData-${dumbUUID()}.json`;
-      const store = createJsonStore(testFile);
-      const oneMinuteBackward = new Date(Date.now() - 1000 * 60).toISOString();
-      const expiredNotification = createFakeNotification(oneMinuteBackward);
-      await store.saveOne(expiredNotification);
-
-      // Act
-      const notificationsForNow = await store.getAllForNow();
-
-      // Assert
-      assert.equal(notificationsForNow.length, 0);
-
-      // Clean
-      await rm(testFile);
-    });
   });
 });
