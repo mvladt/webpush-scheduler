@@ -36,7 +36,7 @@ describe("jsonStoreTools", () => {
       assert.equal(notifications.length, 0);
 
       // Clean
-      // Не нужет, т.к. файла нет.
+      // Не нужен, т.к. файла нет.
     });
 
     it("writeStoreFile", async () => {
