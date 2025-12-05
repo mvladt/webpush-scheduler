@@ -6,7 +6,8 @@
     "keys": "web-push generate-vapid-keys",
     "start": "node --env-file .env src/main.ts",
     "dev": "node --env-file .env --watch src/main.ts",
-    "test": "node --test tests/**/*.test.ts"
+    "test": "node --test tests/**/*.test.ts",
+    "test:docker": "bash ./test-docker.sh"
   },
   "dependencies": {
     "cors": "^2.8.5",
