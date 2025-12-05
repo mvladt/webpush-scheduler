@@ -1,3 +1,4 @@
 - Вкорячить норм СУБД (mongo/postgre/sqlite).
 - Рефакторинг sheduler-a.
 - Написать про Docker в README.
+- Добавить запрос на health. 

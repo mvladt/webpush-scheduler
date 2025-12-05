@@ -1,9 +1,17 @@
-version: "3.8"
 services:
   webpush-scheduler:
     build: .
     ports:
-      - "${PORT:-3000}:3000"
+      - "${PORT:-3000}:${PORT:-3000}"
     env_file:
       - .env
-    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget --spider -q http://localhost:${PORT:-3000}/api/key || exit 1",
+        ]
+      interval: 12s
+      timeout: 2s
+      retries: 4
+      start_period: 2s
