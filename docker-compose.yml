@@ -9,9 +9,9 @@ services:
       test:
         [
           "CMD-SHELL",
-          "wget --spider -q http://localhost:${PORT:-3000}/api/key || exit 1",
+          "wget --spider -q http://localhost:${PORT:-3000}/api/health || exit 1",
         ]
-      interval: 12s
-      timeout: 2s
-      retries: 4
-      start_period: 2s
+      interval: 2s
+      timeout: 5s
+      retries: 3
+      start_period: 1s
