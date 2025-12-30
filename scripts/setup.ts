@@ -1,84 +1,27 @@
-import { writeFile, access } from "node:fs/promises";
-import { constants } from "node:fs";
-import { execSync } from "node:child_process";
-import { createInterface } from "node:readline/promises";
+import { writeFile } from "node:fs/promises";
 
-const ENV_FILE = ".env";
-
-const rl = createInterface({
-  input: process.stdin,
-  output: process.stdout,
-});
+import webPush from "web-push";
 
 const generateVapidKeys = (): { publicKey: string; privateKey: string } => {
-  const output = execSync("npx web-push generate-vapid-keys --json", {
-    encoding: "utf-8",
-  });
-  return JSON.parse(output);
-};
-
-const validateVapidSubject = (subject: string): boolean => {
-  return /^(mailto:.+@.+\..+|https?:\/\/.+)$/.test(subject);
-};
-
-const promptWithDefault = async (
-  question: string,
-  defaultValue: string
-): Promise<string> => {
-  const answer = await rl.question(`${question} (${defaultValue}): `);
-  return answer.trim() || defaultValue;
-};
-
-const fileExists = async (path: string): Promise<boolean> => {
-  try {
-    await access(path, constants.F_OK);
-    return true;
-  } catch {
-    return false;
-  }
+  return webPush.generateVAPIDKeys();
 };
 
 const main = async () => {
-  console.log("🚀 Webpush Scheduler Setup\n");
+  console.log("\n🚀 Webpush Scheduler Setup");
 
-  if (await fileExists(ENV_FILE)) {
-    const overwrite = await rl.question(
-      `.env already exists. Overwrite? (y/N): `
-    );
-    if (overwrite.toLowerCase() !== "y") {
-      console.log("Setup cancelled.");
-      rl.close();
-      return;
-    }
-  }
-
-  console.log("Generating VAPID keys...");
+  console.log("\nGenerating VAPID keys...");
   const { publicKey, privateKey } = generateVapidKeys();
-  console.log("✓ Keys generated\n");
+  console.log("\n✓ Keys generated");
 
-  let vapidSubject = "";
-  while (!validateVapidSubject(vapidSubject)) {
-    vapidSubject = await rl.question(
-      "VAPID Subject (mailto:your@email.com or https://yourdomain.com): "
-    );
-    if (!validateVapidSubject(vapidSubject)) {
-      console.log("❌ Invalid format. Use mailto: or https://\n");
-    }
-  }
-
-  const port = await promptWithDefault("Server port", "3001");
-
-  const envContent = `PORT=${port}
+  const envContent = `PORT=3001
 VAPID_PUBLIC_KEY=${publicKey}
 VAPID_PRIVATE_KEY=${privateKey}
-VAPID_SUBJECT=${vapidSubject}
+VAPID_SUBJECT=mailto:test@example.com
 `;
 
-  await writeFile(ENV_FILE, envContent);
-  console.log("\n✓ .env file created successfully!");
+  await writeFile(".env", envContent);
+  console.log("✓ .env file created successfully!");
   console.log("\nYou can now run: npm start");
-
-  rl.close();
 };
 
 main().catch((error) => {

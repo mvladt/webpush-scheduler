@@ -2,8 +2,7 @@
   "name": "webpush-scheduler",
   "type": "module",
   "scripts": {
-    "setup": "npm ci && npm run keys",
-    "keys": "web-push generate-vapid-keys",
+    "setup": "npm ci && node scripts/setup.ts",
     "start": "node --env-file .env src/main.ts",
     "dev": "node --env-file .env --watch src/main.ts",
     "test": "node --test tests/**/*.test.ts",
