@@ -4,3 +4,4 @@ data.json
 testData*.json
 experiment*.ts
 notifications.json
+.cline*
