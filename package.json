@@ -5,7 +5,7 @@
     "setup": "npm ci && node scripts/setup.ts",
     "start": "node --env-file .env src/main.ts",
     "dev": "node --env-file .env --watch src/main.ts",
-    "test": "node --test tests/**/*.test.ts",
+    "test:jsonStore": "node --test tests/jsonStore/**/*.test.ts",
     "test:docker": "bash ./test-docker.sh"
   },
   "dependencies": {
