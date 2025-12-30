@@ -1,5 +1,6 @@
-import express, { Router } from "express";
+import express from "express";
 import cors from "cors";
+import type { Router, Express } from "express";
 
 import type { NotificationScheduler } from "./scheduler/types.ts";
 
@@ -8,7 +9,7 @@ export const createApp = (
   notificationRouter: Router,
   notificationScheduler: NotificationScheduler
 ) => {
-  const app = express();
+  const app: Express = express();
 
   app.use(cors());
   app.use(express.json());
