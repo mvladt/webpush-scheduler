@@ -2,8 +2,8 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { readFile, rm, writeFile } from "node:fs/promises";
 
-import jsonStoreTools from "../src/jsonStoreTools.ts";
-import { createFakeNotification, dumbUUID } from "./tools.ts";
+import jsonStoreTools from "../../src/jsonStore/tools.ts";
+import { createFakeNotification, dumbUUID } from "../tools.ts";
 
 describe("jsonStoreTools", () => {
   describe("readStoreFile", () => {

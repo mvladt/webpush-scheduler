@@ -2,8 +2,8 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { rm } from "node:fs/promises";
 
-import { createFakeNotification, dumbUUID } from "./tools.ts";
-import { createJsonStore } from "../src/jsonStore.ts";
+import { createFakeNotification, dumbUUID } from "../tools.ts";
+import { createJsonStore } from "../../src/jsonStore/store.ts";
 
 describe("jsonStore", () => {
   describe("saveOne", () => {

@@ -1,5 +1,5 @@
 import { access, readFile, writeFile } from "node:fs/promises";
-import type { NotificationEntity } from "./types.ts";
+import type { NotificationEntity } from "../types.ts";
 
 const readStoreFile = async (file: string): Promise<NotificationEntity[]> => {
   if (await isFileExists(file)) {

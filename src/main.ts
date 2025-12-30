@@ -4,7 +4,7 @@ import cors from "cors";
 import { createNotificationRouter, mainRouter } from "./router.ts";
 import push from "./push.ts";
 import { createNotificationScheduler } from "./scheduler/scheduler.ts";
-import { createJsonStore } from "./jsonStore.ts";
+import { createJsonStore } from "./jsonStore/store.ts";
 
 const notificationStore = createJsonStore("notifications.json");
 

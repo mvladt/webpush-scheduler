@@ -1,5 +1,5 @@
-import jsonStoreTools from "./jsonStoreTools.ts";
-import type { NotificationEntity, NotificationStore } from "./types.ts";
+import jsonStoreTools from "./tools.ts";
+import type { NotificationEntity, NotificationStore } from "../types.ts";
 
 // TODO: Написать тесты на 'getOneById'.
 
