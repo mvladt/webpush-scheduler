@@ -1,10 +1,8 @@
-import express from "express";
-import cors from "cors";
-
 import { createNotificationRouter, mainRouter } from "./router.ts";
 import push from "./push.ts";
 import { createNotificationScheduler } from "./scheduler/scheduler.ts";
 import { createJsonStore } from "./jsonStore/store.ts";
+import { createApp } from "./app.ts";
 
 const notificationStore = createJsonStore("notifications.json");
 
@@ -17,20 +15,11 @@ const notificationScheduler = createNotificationScheduler(
   { intervalMs: 2000 }
 );
 
-notificationScheduler.run();
-
 // - - -
 
 const notificationRouter = createNotificationRouter(notificationScheduler);
 
-const app = express();
-app.use(cors());
-app.use(express.json());
-app.use(mainRouter);
-app.use(notificationRouter);
+// TODO: Слишком много роутеров в зависимостях.
+const app = createApp(mainRouter, notificationRouter, notificationScheduler);
 
-const port = process.env.PORT || "3001";
-
-app.listen(port, () => {
-  console.log(`Server listening on port ${port}`);
-});
+app.run();
