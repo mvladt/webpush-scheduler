@@ -4,22 +4,20 @@ import { createNotificationScheduler } from "./scheduler/scheduler.ts";
 import { createJsonStore } from "./jsonStore/store.ts";
 import { createApp } from "./app.ts";
 
-const notificationStore = createJsonStore("notifications.json");
+const store = createJsonStore("notifications.json");
 
 // const notificationPusher = createWebPusher();
-const notificationPusher = push;
+const pusher = push;
 
-const notificationScheduler = createNotificationScheduler(
-  notificationStore,
-  notificationPusher,
-  { intervalMs: 2000 }
-);
+const scheduler = createNotificationScheduler(store, pusher, {
+  intervalMs: 2000,
+});
 
 // - - -
 
-const notificationRouter = createNotificationRouter(notificationScheduler);
+const notificationRouter = createNotificationRouter(scheduler);
 
 // TODO: Слишком много роутеров в зависимостях.
-const app = createApp(mainRouter, notificationRouter, notificationScheduler);
+const app = createApp(mainRouter, notificationRouter, scheduler);
 
 app.run();
