@@ -1,41 +1,33 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
 
-import push from "./push.ts";
-
-import type { NotificationEntity } from "./types.ts";
-import type { NotificationScheduler } from "./scheduler/types.ts";
+import type { NotificationEntity } from "../types.ts";
+import type { NotificationScheduler } from "../scheduler/types.ts";
 
 export const createNotificationRouter = (scheduler: NotificationScheduler) => {
-  const notificationRouter = Router();
+  const router = Router();
 
-  notificationRouter.post(
-    "/api/notifications",
-    async (req: Request, res: Response) => {
-      console.log(
-        `Received a POST. \n\tEndpoint: ${req.url}, \n\tBody: ${JSON.stringify(
-          req.body
-        )}`
-      );
-      if (!req.body) return res.status(400).send("Body is required");
+  router.post("/api/notifications", async (req: Request, res: Response) => {
+    console.log(
+      `Received a POST. \n\tEndpoint: ${req.url}, \n\tBody: ${JSON.stringify(
+        req.body
+      )}`
+    );
+    if (!req.body) return res.status(400).send("Body is required");
 
-      const notification = req.body as NotificationEntity;
-      await scheduler.schedule(notification);
+    const notification = req.body as NotificationEntity;
+    await scheduler.schedule(notification);
 
-      return res.status(201).send();
-    }
-  );
+    return res.status(201).send();
+  });
 
-  notificationRouter.get(
-    "/api/notifications",
-    async (req: Request, res: Response) => {
-      console.log(`Received a GET. \n\tEndpoint: ${req.url}`);
+  router.get("/api/notifications", async (req: Request, res: Response) => {
+    console.log(`Received a GET. \n\tEndpoint: ${req.url}`);
 
-      res.status(500).send("Not implemented.");
-    }
-  );
+    res.status(500).send("Not implemented.");
+  });
 
-  notificationRouter.get(
+  router.get(
     "/api/notifications/:notificationId",
     async (req: Request, res: Response) => {
       console.log(
@@ -50,7 +42,7 @@ export const createNotificationRouter = (scheduler: NotificationScheduler) => {
     }
   );
 
-  notificationRouter.patch(
+  router.patch(
     "/api/notifications/:notificationId",
     async (req: Request, res: Response) => {
       console.log(
@@ -65,7 +57,7 @@ export const createNotificationRouter = (scheduler: NotificationScheduler) => {
     }
   );
 
-  notificationRouter.delete(
+  router.delete(
     "/api/notifications/:notificationId",
     async (req: Request, res: Response) => {
       console.log(
@@ -85,20 +77,5 @@ export const createNotificationRouter = (scheduler: NotificationScheduler) => {
     }
   );
 
-  return notificationRouter;
+  return router;
 };
-
-export const mainRouter = Router();
-
-mainRouter.get("/api/health", (req: Request, res: Response) => {
-  res.status(200).send();
-});
-
-mainRouter.get("/api/key", (req: Request, res: Response) => {
-  console.log(`Received a GET. \n\tEndpoint: ${req.url}`);
-
-  const vapidPublicKey = push.getVapidPublicKey();
-  res.send(vapidPublicKey);
-});
-
-// TODO: Разбить это на несколько файлов.

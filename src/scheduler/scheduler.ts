@@ -1,8 +1,5 @@
-import type {
-  NotificationEntity,
-  NotificationStore,
-  WebPushModule,
-} from "../types.ts";
+import type { NotificationEntity, NotificationStore } from "../types.ts";
+import type { WebPusher } from "../pusher/types.ts";
 
 import type {
   NotificationScheduler,
@@ -14,7 +11,7 @@ import type {
 // TODO: Добавить какую-то валидацию. В частности на 'schedule' и 'cancel'.
 export const createNotificationScheduler = (
   store: NotificationStore,
-  pusher: WebPushModule,
+  pusher: WebPusher,
   options: SchedulerOptions = { intervalMs: 1000 }
 ): NotificationScheduler => {
   const { intervalMs } = options;
@@ -33,7 +30,7 @@ export const createNotificationScheduler = (
     await pusher.sendMany(notifications);
     await store.removeMany(notifications);
 
-    console.log("Scheduler work. Time: ", new Date().toISOString());
+    console.log(`Scheduler work. Time: ${new Date().toLocaleTimeString()}`);
   };
 
   const scheduler: NotificationScheduler = {

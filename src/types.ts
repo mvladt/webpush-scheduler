@@ -12,9 +12,3 @@ export interface NotificationStore {
   getOneById(notificationId: string): Promise<NotificationEntity>;
   getAllForNow(): Promise<NotificationEntity[]>;
 }
-
-export interface WebPushModule {
-  sendOne(notitification: NotificationEntity): Promise<void>;
-  sendMany(notificationList: NotificationEntity[]): Promise<void>;
-  getVapidPublicKey(): string;
-}
