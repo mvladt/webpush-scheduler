@@ -44,6 +44,14 @@ export const createApp = (
       });
     },
 
+    getPort() {
+      if (!server) {
+        throw new Error("Server is not running.");
+      }
+
+      return (server.address() as any).port;
+    },
+
     // TODO: Нарушение инкапсуляции.
     express: app,
   };
