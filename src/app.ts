@@ -20,11 +20,14 @@ export const createApp = (
   app.use(router);
 
   return {
-    start() {
-      server = app.listen(port, () => {
-        console.log(`Server listening on port ${port}.`);
+    async start() {
+      return new Promise<void>((resolve) => {
+        server = app.listen(port, () => {
+          console.log(`Server listening on port ${port}.`);
 
-        notificationScheduler.run();
+          notificationScheduler.run();
+          resolve();
+        });
       });
     },
     async stop() {
