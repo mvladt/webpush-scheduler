@@ -29,16 +29,7 @@ const router = createRouter(scheduler, pusher);
 
 const app = createApp(port, router, scheduler);
 
-app.start();
+await app.start();
 
-process.on("SIGINT", async () => {
-  console.log("Received SIGINT, shutting down gracefully...");
-  await app.stop();
-  process.exit(0);
-});
-
-process.on("SIGTERM", async () => {
-  console.log("Received SIGTERM, shutting down gracefully...");
-  await app.stop();
-  process.exit(0);
-});
+process.on("SIGINT", () => app.stop().then(() => process.exit(0)));
+process.on("SIGTERM", () => app.stop().then(() => process.exit(0)));
