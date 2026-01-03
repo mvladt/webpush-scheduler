@@ -23,9 +23,9 @@ export const createApp = (
     async start() {
       return new Promise<void>((resolve) => {
         server = app.listen(port, () => {
-          console.log(`Server listening on port ${port}.`);
-
+          console.log(`Server started on port ${port}.`);
           notificationScheduler.run();
+          console.log(`App started.`);
           resolve();
         });
       });
@@ -39,6 +39,7 @@ export const createApp = (
         server.close(() => {
           notificationScheduler.stop();
           console.log("App stopped.");
+          console.log("\n");
           resolve();
         });
       });
