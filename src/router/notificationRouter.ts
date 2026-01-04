@@ -2,13 +2,17 @@ import { Router } from "express";
 import type { Request, Response } from "express";
 
 import type { NotificationEntity } from "../types.ts";
+import type { Logger } from "../logger/types.ts";
 import type { NotificationScheduler } from "../scheduler/types.ts";
 
-export const createNotificationRouter = (scheduler: NotificationScheduler) => {
+export const createNotificationRouter = (
+  scheduler: NotificationScheduler,
+  logger: Logger
+) => {
   const router = Router();
 
   router.post("/api/notifications", async (req: Request, res: Response) => {
-    console.log(
+    logger.log(
       `Received a POST. \n\tEndpoint: ${req.url}, \n\tBody: ${JSON.stringify(
         req.body
       )}`
@@ -22,7 +26,7 @@ export const createNotificationRouter = (scheduler: NotificationScheduler) => {
   });
 
   router.get("/api/notifications", async (req: Request, res: Response) => {
-    console.log(`Received a GET. \n\tEndpoint: ${req.url}`);
+    logger.log(`Received a GET. \n\tEndpoint: ${req.url}`);
 
     res.status(500).send("Not implemented.");
   });
@@ -30,7 +34,7 @@ export const createNotificationRouter = (scheduler: NotificationScheduler) => {
   router.get(
     "/api/notifications/:notificationId",
     async (req: Request, res: Response) => {
-      console.log(
+      logger.log(
         `Received a PATCH. \n\tEndpoint: ${
           req.url
         }, \n\tParams: ${JSON.stringify(req.params)}`
@@ -45,7 +49,7 @@ export const createNotificationRouter = (scheduler: NotificationScheduler) => {
   router.patch(
     "/api/notifications/:notificationId",
     async (req: Request, res: Response) => {
-      console.log(
+      logger.log(
         `Received a PATCH. \n\tEndpoint: ${
           req.url
         }, \n\tParams: ${JSON.stringify(req.params)}`
@@ -60,7 +64,7 @@ export const createNotificationRouter = (scheduler: NotificationScheduler) => {
   router.delete(
     "/api/notifications/:notificationId",
     async (req: Request, res: Response) => {
-      console.log(
+      logger.log(
         `Received a DELETE. \n\tEndpoint: ${
           req.url
         }, \n\tParams: ${JSON.stringify(req.params)}`

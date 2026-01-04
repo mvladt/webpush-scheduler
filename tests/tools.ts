@@ -8,6 +8,7 @@ import { createJsonStore } from "../src/jsonStore/store.ts";
 import { createWebPusher } from "../src/pusher/pusher.ts";
 
 import type { NotificationEntity } from "../src/types.ts";
+import type { Logger } from "../src/logger/types.ts";
 
 export const createFakeNotification = (
   datetime: string = "2025-01-01T00:00"
@@ -55,19 +56,28 @@ export const createTestApp = () => {
   const testFile = `test-notifications-${dumbUUID()}.json`;
   const vapidKeys = webpush.generateVAPIDKeys();
 
+  const testLogger: Logger = {
+    log: () => {},
+    error: () => {},
+  };
+
   const store = createJsonStore(testFile);
-  const pusher = createWebPusher({
-    vapidDetails: {
-      subject: "mailto:test@example.com",
-      publicKey: vapidKeys.publicKey,
-      privateKey: vapidKeys.privateKey,
+  const pusher = createWebPusher(
+    {
+      vapidDetails: {
+        subject: "mailto:test@example.com",
+        publicKey: vapidKeys.publicKey,
+        privateKey: vapidKeys.privateKey,
+      },
     },
-  });
-  const scheduler = createNotificationScheduler(store, pusher, {
+    testLogger
+  );
+  const scheduler = createNotificationScheduler(store, pusher, testLogger, {
     intervalMs: 2000,
   });
-  const router = createRouter(scheduler, pusher);
-  const app = createApp(0, router, scheduler);
+  const router = createRouter(scheduler, pusher, testLogger);
+
+  const app = createApp(0, router, scheduler, testLogger);
 
   return { app, testFile, vapidKeys };
 };

@@ -1,9 +1,13 @@
 import webpush from "web-push";
 
 import type { NotificationEntity } from "../types.ts";
+import type { Logger } from "../logger/types.ts";
 import type { VapidOptions, WebPusher } from "./types.ts";
 
-export const createWebPusher = (vapidOptions: VapidOptions): WebPusher => {
+export const createWebPusher = (
+  vapidOptions: VapidOptions,
+  logger: Logger
+): WebPusher => {
   const sendOne = async (notification: NotificationEntity): Promise<void> => {
     try {
       const result = await webpush.sendNotification(
@@ -11,10 +15,10 @@ export const createWebPusher = (vapidOptions: VapidOptions): WebPusher => {
         JSON.stringify(notification.payload),
         vapidOptions
       );
-      console.log(`Notification sent. Status: ${result.statusCode}`);
+      logger.log(`Notification sent. Status: ${result.statusCode}`);
     } catch (error) {
-      console.log(`Error sending notification id: ${notification.id}`);
-      console.error(error);
+      logger.log(`Error sending notification id: ${notification.id}`);
+      logger.error(error);
     }
   };
 

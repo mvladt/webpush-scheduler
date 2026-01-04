@@ -1,14 +1,16 @@
 import express from "express";
 import cors from "cors";
 import type { Router, Express } from "express";
+import type { Server } from "http";
 
 import type { NotificationScheduler } from "./scheduler/types.ts";
-import type { Server } from "http";
+import type { Logger } from "./logger/types.ts";
 
 export const createApp = (
   port: number,
   router: Router,
-  notificationScheduler: NotificationScheduler
+  notificationScheduler: NotificationScheduler,
+  logger: Logger
 ) => {
   let server: Server;
 
@@ -23,9 +25,9 @@ export const createApp = (
     async start() {
       return new Promise<void>((resolve) => {
         server = app.listen(port, () => {
-          console.log(`Server started on port ${port}.`);
+          logger.log(`Server started on port ${port}.`);
           notificationScheduler.run();
-          console.log(`App started.`);
+          logger.log(`App started.`);
           resolve();
         });
       });
@@ -38,8 +40,8 @@ export const createApp = (
       return new Promise<void>((resolve) => {
         server.close(() => {
           notificationScheduler.stop();
-          console.log("App stopped.");
-          console.log("\n");
+          logger.log("App stopped.");
+          logger.log("\n");
           resolve();
         });
       });
