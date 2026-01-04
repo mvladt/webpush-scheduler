@@ -6,6 +6,7 @@
     "start": "node --env-file .env src/main.ts",
     "dev": "node --env-file .env --watch src/main.ts",
     "test:jsonStore": "node --test tests/jsonStore/**/*.test.ts",
+    "test:e2e": "node --test tests/e2e/**/*.test.ts",
     "test:docker": "bash ./test-docker.sh"
   },
   "dependencies": {
