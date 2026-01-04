@@ -20,6 +20,23 @@ export const createFakeNotification = (
   };
 };
 
+export const createTestNotification = (
+  datetime?: string
+): NotificationEntity => {
+  return {
+    id: dumbUUID(),
+    payload: { title: "Test Notification", body: "Hello from test!" },
+    datetime: datetime || new Date(Date.now() + 60000).toISOString(), // +1 min
+    subscription: {
+      endpoint: "https://fcm.googleapis.com/fcm/send/test",
+      keys: {
+        p256dh: "test-p256dh-key",
+        auth: "test-auth-key",
+      },
+    },
+  };
+};
+
 export const dumbUUID = (): string =>
   `id-${Date.now().toString(16)}-${Math.random().toString(16).slice(2)}`;
 
