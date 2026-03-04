@@ -1,29 +1,43 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Этот файл содержит инструкции для Claude Code (claude.ai/code) при работе с данным репозиторием.
 
-## Project Overview
+## Содержание
 
-Web Push notification scheduler built with Node.js and Express. Accepts push subscriptions with scheduled datetime and payload, stores them, and sends notifications at the specified time via Web Push Protocol.
+- [Правила документации](#правила-документации)
+- [Обзор проекта](#обзор-проекта)
+- [Команды](#команды)
+- [Архитектура](#архитектура)
+- [Правила стиля кода](#правила-стиля-кода)
+- [Тестирование](#тестирование)
+- [Окружение](#окружение)
 
-## Commands
+## Правила документации
+
+MD-файлы длиннее 30 строк и с более чем двумя заголовками должны содержать одноуровневое оглавление.
+
+## Обзор проекта
+
+Планировщик Web Push уведомлений на Node.js и Express. Принимает push-подписки с указанием времени отправки и содержимого, сохраняет их и отправляет уведомления в нужный момент через Web Push Protocol.
+
+## Команды
 
 ```bash
-npm run setup        # Install dependencies and generate VAPID keys
-npm run start        # Start production server
-npm run dev          # Start development server with watch mode
-npm run test:jsonStore  # Run JSON store unit tests
-npm run test:e2e     # Run end-to-end tests
+npm run setup        # Установить зависимости и сгенерировать VAPID-ключи
+npm run start        # Запустить production-сервер
+npm run dev          # Запустить dev-сервер с watch-режимом
+npm run test:jsonStore  # Запустить unit-тесты JSON-хранилища
+npm run test:e2e     # Запустить end-to-end тесты
 ```
 
-Run a single test file:
+Запуск одного тестового файла:
 ```bash
 node --test tests/jsonStore/store.test.ts
 ```
 
-## Architecture
+## Архитектура
 
-Dependency injection via factory functions in `main.ts`:
+Внедрение зависимостей через фабричные функции в `main.ts`:
 
 ```
 main.ts → createApp(port, router, scheduler, logger)
@@ -36,34 +50,34 @@ main.ts → createApp(port, router, scheduler, logger)
             └── createConsoleLogger()
 ```
 
-**Core modules:**
-- `scheduler/` - Polls store on interval, sends due notifications via pusher
-- `jsonStore/` - File-based notification storage implementing `NotificationStore` interface
-- `pusher/` - Web Push sending wrapper around `web-push` library
-- `router/` - Express routes: `POST /api/notifications`, `GET /api/key`, `GET /api/health`
+**Основные модули:**
+- `scheduler/` — опрашивает хранилище по таймеру, отправляет подошедшие уведомления через pusher
+- `jsonStore/` — файловое хранилище уведомлений, реализует интерфейс `NotificationStore`
+- `pusher/` — обёртка над библиотекой `web-push` для отправки уведомлений
+- `router/` — Express-роуты: `POST /api/notifications`, `GET /api/key`, `GET /api/health`
 
-**Data flow:** Client → Router → Scheduler.schedule() → Store → (on interval) → Pusher → Push Service
+**Поток данных:** Клиент → Router → Scheduler.schedule() → Store → (по таймеру) → Pusher → Push Service
 
-## Code Style Rules
+## Правила стиля кода
 
-**No classes:** Use factory functions (`createX(deps) => { ...methods }`), pure functions, modules with named exports, and closures.
+**Без классов:** использовать фабричные функции (`createX(deps) => { ...methods }`), чистые функции, модули с именованными экспортами и замыкания.
 
-**ESM imports:**
-- Only relative imports (`./`, `../`) - no aliases or path mapping
-- Always include file extension (`.ts`)
-- Order: library imports first, blank line, then project imports
+**ESM-импорты:**
+- Только относительные импорты (`./`, `../`) — никаких алиасов и path mapping
+- Всегда указывать расширение файла (`.ts`)
+- Порядок: сначала импорты библиотек, затем пустая строка, затем импорты проекта
 
-**Async only:** Use `node:fs/promises` exclusively. No sync methods (`readFileSync`, `existsSync`, etc.).
+**Только async:** использовать исключительно `node:fs/promises`. Никаких синхронных методов (`readFileSync`, `existsSync` и т.д.).
 
-**Git commits:** Commit messages must be in Russian.
+**Git-коммиты:** сообщения коммитов должны быть на русском языке.
 
-## Testing
+## Тестирование
 
-Tests use Node.js built-in test runner (`node:test`) with `node:assert/strict`. Test utilities in `tests/tools.ts` provide `createTestApp()` for e2e tests and `createFakeNotification()` for unit tests.
+Тесты используют встроенный test runner Node.js (`node:test`) с `node:assert/strict`. Утилиты в `tests/tools.ts` предоставляют `createTestApp()` для e2e-тестов и `createFakeNotification()` для unit-тестов.
 
-## Environment
+## Окружение
 
-Requires Node.js >= 22.6. Environment variables in `.env` (see `.env.example`):
-- `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` - Generated via `npm run setup`
-- `VAPID_SUBJECT` - Format: `mailto:email` or `https://domain`
-- `PORT` - Server port (default: 3001)
+Требуется Node.js >= 22.6. Переменные окружения в `.env` (см. `.env.example`):
+- `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` — генерируются через `npm run setup`
+- `VAPID_SUBJECT` — формат: `mailto:email` или `https://domain`
+- `PORT` — порт сервера (по умолчанию: 3001)
