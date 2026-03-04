@@ -1,0 +1,118 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Web Push Scheduler API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/key": {
+      "get": {
+        "summary": "Получить VAPID public key",
+        "responses": {
+          "200": {
+            "description": "VAPID public key в формате base64url",
+            "content": {
+              "text/plain": {
+                "schema": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notifications": {
+      "post": {
+        "summary": "Запланировать уведомление",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/NotificationEntity" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Уведомление запланировано" },
+          "400": { "description": "Тело запроса отсутствует" }
+        }
+      },
+      "get": {
+        "summary": "Получить список уведомлений",
+        "responses": {
+          "500": { "description": "Не реализовано" }
+        }
+      }
+    },
+    "/api/notifications/{notificationId}": {
+      "get": {
+        "summary": "Получить уведомление по ID",
+        "parameters": [
+          { "name": "notificationId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "500": { "description": "Не реализовано" }
+        }
+      },
+      "patch": {
+        "summary": "Обновить уведомление",
+        "parameters": [
+          { "name": "notificationId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "500": { "description": "Не реализовано" }
+        }
+      },
+      "delete": {
+        "summary": "Удалить уведомление",
+        "parameters": [
+          { "name": "notificationId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "204": { "description": "Удалено" },
+          "500": { "description": "Не реализовано" }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "summary": "Проверка работоспособности сервера",
+        "responses": {
+          "200": { "description": "Сервер работает" }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "PushSubscription": {
+        "type": "object",
+        "required": ["endpoint", "keys"],
+        "properties": {
+          "endpoint": { "type": "string", "format": "uri" },
+          "keys": {
+            "type": "object",
+            "required": ["p256dh", "auth"],
+            "properties": {
+              "p256dh": { "type": "string" },
+              "auth": { "type": "string" }
+            }
+          }
+        }
+      },
+      "NotificationEntity": {
+        "type": "object",
+        "required": ["id", "payload", "datetime", "subscription"],
+        "properties": {
+          "id": { "type": "string" },
+          "payload": { "type": "object" },
+          "datetime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Когда отправить, в формате ISO yyyy-MM-ddThh:mm"
+          },
+          "subscription": { "$ref": "#/components/schemas/PushSubscription" }
+        }
+      }
+    }
+  }
+}
