@@ -1,4 +1,6 @@
 import { access, rm } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+
 import webpush from "web-push";
 
 import { createApp } from "../src/app.ts";
@@ -11,7 +13,7 @@ import type { NotificationEntity } from "../src/types.ts";
 import type { Logger } from "../src/logger/types.ts";
 
 export const createFakeNotification = (
-  datetime: string = "2025-01-01T00:00"
+  datetime: string = "2025-01-01T00:00",
 ): NotificationEntity => {
   return {
     id: dumbUUID(),
@@ -22,7 +24,7 @@ export const createFakeNotification = (
 };
 
 export const createTestNotification = (
-  datetime?: string
+  datetime?: string,
 ): NotificationEntity => {
   return {
     id: dumbUUID(),
@@ -70,14 +72,15 @@ export const createTestApp = () => {
         privateKey: vapidKeys.privateKey,
       },
     },
-    testLogger
+    testLogger,
   );
   const scheduler = createNotificationScheduler(store, pusher, testLogger, {
     intervalMs: 2000,
   });
   const router = createRouter(scheduler, pusher, testLogger);
 
-  const app = createApp(0, router, scheduler, testLogger);
+  const pathToClient = fileURLToPath(new URL("../src/client", import.meta.url));
+  const app = createApp(0, router, scheduler, testLogger, pathToClient);
 
   return { app, testFile, vapidKeys };
 };

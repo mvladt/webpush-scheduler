@@ -10,7 +10,8 @@ export const createApp = (
   port: number,
   router: Router,
   notificationScheduler: NotificationScheduler,
-  logger: Logger
+  logger: Logger,
+  pathToClient: string,
 ) => {
   let server: Server;
 
@@ -18,6 +19,9 @@ export const createApp = (
 
   app.use(cors());
   app.use(express.json());
+
+  // Статика должна идти до роутера.
+  app.use(express.static(pathToClient));
 
   app.use(router);
 

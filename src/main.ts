@@ -1,3 +1,5 @@
+import { fileURLToPath } from "node:url";
+
 import { createRouter } from "./router/router.ts";
 import { createNotificationScheduler } from "./scheduler/scheduler.ts";
 import { createJsonStore } from "./jsonStore/store.ts";
@@ -33,7 +35,9 @@ const scheduler = createNotificationScheduler(store, pusher, logger, {
 
 const router = createRouter(scheduler, pusher, logger);
 
-const app = createApp(port, router, scheduler, logger);
+const pathToClient = fileURLToPath(new URL("./client", import.meta.url));
+
+const app = createApp(port, router, scheduler, logger, pathToClient);
 
 await app.start();
 

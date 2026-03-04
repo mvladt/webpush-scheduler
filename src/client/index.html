@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Web Push — Клиент</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 600px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+      }
+      fieldset {
+        margin-bottom: 1rem;
+      }
+      .status-item {
+        margin: 0.25rem 0;
+      }
+      .ok {
+        color: green;
+      }
+      .fail {
+        color: red;
+      }
+      .warn {
+        color: orange;
+      }
+      #error-box {
+        color: red;
+        margin: 0.5rem 0;
+        white-space: pre-wrap;
+      }
+      #success-box {
+        color: green;
+        margin: 0.5rem 0;
+      }
+      #received-list {
+        list-style: none;
+        padding: 0;
+      }
+      #received-list li {
+        padding: 0.25rem 0;
+        border-bottom: 1px solid #eee;
+      }
+      input,
+      button {
+        margin: 0.25rem 0;
+      }
+      label {
+        display: block;
+        margin-top: 0.5rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Web Push — Клиент</h1>
+
+    <fieldset>
+      <legend>Статус</legend>
+      <div id="status-sw" class="status-item">Service Worker: …</div>
+      <div id="status-permission" class="status-item">Разрешение: …</div>
+      <div id="status-subscription" class="status-item">Push-подписка: …</div>
+      <button id="btn-permission" hidden>Разрешить уведомления</button>
+    </fieldset>
+
+    <fieldset id="form-section">
+      <legend>Запланировать уведомление</legend>
+      <label>Заголовок: <input id="input-title" type="text" required /></label>
+      <label>Текст: <input id="input-body" type="text" /></label>
+      <label
+        >Время: <input id="input-datetime" type="datetime-local" required
+      /></label>
+      <br />
+      <button id="btn-schedule" disabled>Запланировать</button>
+      <div id="error-box"></div>
+      <div id="success-box"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Получено</legend>
+      <ul id="received-list"></ul>
+    </fieldset>
+
+    <script type="module">
+      const API_ORIGIN = window.location.origin;
+
+      const statusSw = document.getElementById("status-sw");
+      const statusPermission = document.getElementById("status-permission");
+      const statusSubscription = document.getElementById("status-subscription");
+      const btnPermission = document.getElementById("btn-permission");
+      const btnSchedule = document.getElementById("btn-schedule");
+      const inputTitle = document.getElementById("input-title");
+      const inputBody = document.getElementById("input-body");
+      const inputDatetime = document.getElementById("input-datetime");
+      const errorBox = document.getElementById("error-box");
+      const successBox = document.getElementById("success-box");
+      const receivedList = document.getElementById("received-list");
+
+      let pushSubscription = null;
+
+      // --- Утилиты ---
+
+      function urlBase64ToUint8Array(base64String) {
+        const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+        const base64 = (base64String + padding)
+          .replace(/-/g, "+")
+          .replace(/_/g, "/");
+        const raw = atob(base64);
+        const arr = new Uint8Array(raw.length);
+        for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+        return arr;
+      }
+
+      function setStatus(el, ok, text) {
+        el.textContent = text;
+        el.className = "status-item " + (ok ? "ok" : "fail");
+      }
+
+      function showError(msg) {
+        errorBox.textContent = msg;
+        successBox.textContent = "";
+      }
+
+      function showSuccess(msg) {
+        successBox.textContent = msg;
+        errorBox.textContent = "";
+      }
+
+      function generateId() {
+        return (
+          "id-" +
+          Date.now().toString(16) +
+          "-" +
+          Math.random().toString(16).slice(2)
+        );
+      }
+
+      // --- 1. Проверка API ---
+
+      if (!("serviceWorker" in navigator)) {
+        setStatus(statusSw, false, "Service Worker: не поддерживается");
+        throw new Error("Service Worker не поддерживается");
+      }
+
+      // --- 2. Регистрация Service Worker ---
+
+      let registration;
+      try {
+        registration = await navigator.serviceWorker.register("/sw.js");
+        await navigator.serviceWorker.ready;
+        setStatus(statusSw, true, "Service Worker: ✓");
+      } catch (err) {
+        setStatus(statusSw, false, "Service Worker: ошибка — " + err.message);
+        throw err;
+      }
+
+      // --- 3. Получение VAPID-ключа ---
+
+      let vapidPublicKey;
+      try {
+        const res = await fetch(API_ORIGIN + "/api/key");
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        vapidPublicKey = await res.text();
+      } catch (err) {
+        showError("Не удалось получить VAPID-ключ: " + err.message);
+        throw err;
+      }
+
+      // --- 4. Разрешение на уведомления ---
+
+      function updatePermissionStatus() {
+        const perm = Notification.permission;
+        if (perm === "granted") {
+          setStatus(statusPermission, true, "Разрешение: ✓");
+          btnPermission.hidden = true;
+        } else if (perm === "denied") {
+          setStatus(
+            statusPermission,
+            false,
+            "Разрешение: отклонено. Разрешите в настройках браузера.",
+          );
+          btnPermission.hidden = true;
+        } else {
+          setStatus(statusPermission, false, "Разрешение: не выдано");
+          btnPermission.hidden = false;
+        }
+      }
+
+      updatePermissionStatus();
+
+      btnPermission.addEventListener("click", async () => {
+        await Notification.requestPermission();
+        updatePermissionStatus();
+        if (Notification.permission === "granted") {
+          await subscribeForPush();
+        }
+      });
+
+      // --- 5. Push-подписка ---
+
+      async function subscribeForPush() {
+        if (!registration.pushManager) {
+          setStatus(
+            statusSubscription,
+            false,
+            "Push-подписка: Push API не поддерживается",
+          );
+          return;
+        }
+        setStatus(statusSubscription, false, "Push-подписка: подключение…");
+        try {
+          pushSubscription = await registration.pushManager.getSubscription();
+          if (!pushSubscription) {
+            pushSubscription = await registration.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+            });
+          }
+          setStatus(statusSubscription, true, "Push-подписка: ✓");
+          btnSchedule.disabled = false;
+        } catch (err) {
+          setStatus(
+            statusSubscription,
+            false,
+            "Push-подписка: ошибка — " + err.message,
+          );
+        }
+      }
+
+      if (Notification.permission === "granted") {
+        await subscribeForPush();
+      } else {
+        setStatus(
+          statusSubscription,
+          false,
+          "Push-подписка: ожидает разрешения",
+        );
+      }
+
+      // --- 6. Получение push-сообщений от SW ---
+
+      navigator.serviceWorker.addEventListener("message", (event) => {
+        if (event.data && event.data.type === "PUSH_RECEIVED") {
+          const { title, body, receivedAt } = event.data.payload;
+          const time = new Date(receivedAt).toLocaleTimeString();
+          const li = document.createElement("li");
+          li.textContent =
+            time + " — " + (title || "") + (body ? ": " + body : "");
+          receivedList.prepend(li);
+        }
+      });
+
+      // --- 7. Отправка формы ---
+
+      btnSchedule.addEventListener("click", async () => {
+        const title = inputTitle.value.trim();
+        const datetime = inputDatetime.value;
+
+        if (!title || !datetime) {
+          showError("Заполните заголовок и время.");
+          return;
+        }
+
+        const notification = {
+          id: generateId(),
+          payload: { title, body: inputBody.value.trim() },
+          datetime: new Date(datetime).toISOString(),
+          subscription: pushSubscription.toJSON(),
+        };
+
+        try {
+          const res = await fetch(API_ORIGIN + "/api/notifications", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(notification),
+          });
+
+          if (!res.ok) {
+            const text = await res.text();
+            showError(
+              "Ошибка: HTTP " + res.status + (text ? " — " + text : ""),
+            );
+            return;
+          }
+
+          showSuccess(
+            "Уведомление запланировано на " +
+              new Date(datetime).toLocaleString(),
+          );
+          inputTitle.value = "";
+          inputBody.value = "";
+          inputDatetime.value = "";
+        } catch (err) {
+          showError("Ошибка отправки: " + err.message);
+        }
+      });
+
+      // TODO: Что-то слишком много строк.
+    </script>
+  </body>
+</html>
