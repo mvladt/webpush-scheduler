@@ -5,3 +5,4 @@ testData*.json
 experiment*.ts
 notifications.json
 .cline*
+test-results

@@ -7,7 +7,8 @@
     "dev": "node --env-file .env --watch src/main.ts",
     "test:jsonStore": "node --test tests/jsonStore/**/*.test.ts",
     "test:e2e": "node --test tests/e2e/**/*.test.ts",
-    "test:docker": "bash ./test-docker.sh"
+    "test:docker": "bash ./test-docker.sh",
+    "test:playwright": "npx playwright test"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -15,6 +16,7 @@
     "web-push": "^3.6.7"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@types/express": "^5.0.6",
     "@types/node": "^24.6.2"
   },

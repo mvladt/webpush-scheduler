@@ -7,7 +7,7 @@ self.addEventListener("push", (event) => {
 
   event.waitUntil(
     self.registration.showNotification(title, options).then(() => {
-      return self.clients.matchAll({ type: "window" }).then((clients) => {
+      return self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
         const message = {
           type: "PUSH_RECEIVED",
           payload: {
