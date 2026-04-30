@@ -4,6 +4,7 @@
   "scripts": {
     "start": "node src/main.ts",
     "dev": "node --watch src/main.ts",
+    "test:env": "node --test tests/env/**/*.test.ts",
     "test:jsonStore": "node --test tests/jsonStore/**/*.test.ts",
     "test:integration": "node --test tests/integration/**/*.test.ts",
     "test:docker": "bash ./test-docker.sh",

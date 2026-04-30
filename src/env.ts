@@ -9,9 +9,9 @@ export type EnvConfig = {
   vapidPrivateKey: string;
 };
 
-export const loadEnv = async (): Promise<EnvConfig> => {
+export const loadEnv = async (envPath: string = ".env"): Promise<EnvConfig> => {
   try {
-    process.loadEnvFile(".env");
+    process.loadEnvFile(envPath);
   } catch {
     console.warn(
       "[env] .env not found — generating VAPID keys. " +
@@ -21,8 +21,8 @@ export const loadEnv = async (): Promise<EnvConfig> => {
     const { publicKey, privateKey } = webPush.generateVAPIDKeys();
     const content = `PORT=3001\nVAPID_PUBLIC_KEY=${publicKey}\nVAPID_PRIVATE_KEY=${privateKey}\nVAPID_SUBJECT=mailto:test@example.com\n`;
 
-    await writeFile(".env", content);
-    process.loadEnvFile(".env");
+    await writeFile(envPath, content);
+    process.loadEnvFile(envPath);
   }
 
   return {
