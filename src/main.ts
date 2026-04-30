@@ -1,5 +1,6 @@
 import { fileURLToPath } from "node:url";
 
+import { loadEnv } from "./env.ts";
 import { createRouter } from "./router/router.ts";
 import { createNotificationScheduler } from "./scheduler/scheduler.ts";
 import { createJsonStore } from "./jsonStore/store.ts";
@@ -7,12 +8,7 @@ import { createWebPusher } from "./pusher/pusher.ts";
 import { createApp } from "./app.ts";
 import { createConsoleLogger } from "./logger/logger.ts";
 
-// TODO: Добавить куда-то обработку случая, когда env-переменные не заданы.
-const vapidSubject = process.env.VAPID_SUBJECT;
-const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
-const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
-
-const port = Number(process.env.PORT) || 3001;
+const { port, vapidSubject, vapidPublicKey, vapidPrivateKey } = await loadEnv();
 
 const logger = createConsoleLogger();
 

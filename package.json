@@ -2,9 +2,8 @@
   "name": "webpush-scheduler",
   "type": "module",
   "scripts": {
-    "setup": "npm ci && node scripts/setup.ts",
-    "start": "node --env-file .env src/main.ts",
-    "dev": "node --env-file .env --watch src/main.ts",
+    "start": "node src/main.ts",
+    "dev": "node --watch src/main.ts",
     "test:jsonStore": "node --test tests/jsonStore/**/*.test.ts",
     "test:e2e": "node --test tests/e2e/**/*.test.ts",
     "test:docker": "bash ./test-docker.sh",
