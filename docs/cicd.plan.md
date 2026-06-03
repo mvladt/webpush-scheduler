@@ -31,7 +31,7 @@
 - [x] `npm ci`
 - [x] **Typecheck:** `npx tsc` (использует существующий `tsconfig.json` с `noEmit: true`)
 - [x] **Unit-тесты env:** `npm run test:env`
-- [x] **Unit-тесты jsonStore:** `npm run test:jsonStore`
+- [ ] ~~**Unit-тесты jsonStore:** `npm run test:jsonStore`~~ — не включаем в CI: прод на SQLite, jsonStore остаётся только в `createTestApp` (тестовая инфра). Расхождение тест/прод зафиксировано как техдолг.
 - [x] **Unit-тесты sqliteStore:** `npm run test:sqliteStore` _(добавлено — появилось после миграции на SQLite, плана ещё не было)_
 - [x] **Integration-тесты:** `npm run test:integration`
 - [x] **Аудит npm:** `npm audit --audit-level=high` (не падает на low/moderate). При внедрении нашёл 2 high + 3 moderate в транзитивных зависимостях (`jws`, `path-to-regexp`, `qs`, `body-parser`, `bn.js`) — устранены через `npm audit fix`.

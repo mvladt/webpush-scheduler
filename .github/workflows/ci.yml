@@ -26,8 +26,6 @@ jobs:
         run: npx tsc
       - name: Тесты env
         run: npm run test:env
-      - name: Тесты jsonStore
-        run: npm run test:jsonStore
       - name: Тесты sqliteStore
         run: npm run test:sqliteStore
       - name: Интеграционные тесты

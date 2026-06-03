@@ -7,7 +7,7 @@
 ### Что сделано
 
 - **Создан `.github/workflows/ci.yml`** с двумя job'ами:
-  - `test`: checkout → setup-node (22) → `npm ci` → `tsc` → тесты `env`/`jsonStore`/`sqliteStore`/`integration` → `npm audit --audit-level=high`.
+  - `test`: checkout → setup-node (22) → `npm ci` → `tsc` → тесты `env`/`sqliteStore`/`integration` → `npm audit --audit-level=high`.
   - `e2e`: checkout → setup-node → `npm ci` → `playwright install --with-deps chrome` → `npm run test:playwright`, с загрузкой артефактов (`test-results/`, `playwright-report/`) при падении.
   - Триггеры: `push` (все ветки) + `pull_request` в `main`.
   - `concurrency: ci-${{ github.ref }}` с `cancel-in-progress` — отмена устаревших запусков.
@@ -36,6 +36,15 @@
 Локально прогнаны (зелёные): `tsc`, `test:env` (2), `test:jsonStore` (9),
 `test:sqliteStore` (8), `test:integration` (5), `npm audit` (0 vuln).
 Job `e2e` локально не гонялся (нужен headed Chrome + реальный FCM) — проверяется на самом CI.
+
+### Техдолг (выявлено при внедрении)
+
+`createTestApp()` (tests/tools.ts) собирает приложение на `createJsonStore`, тогда как прод
+работает на `createSqliteStore`. Из-за этого integration/e2e проверяют не тот сторадж, что в
+проде, а `jsonStore` остаётся в кодовой базе ради тестовой инфраструктуры. По решению — пока
+не трогаем (вариант A): `test:jsonStore` просто убран из CI. Чистый путь на будущее —
+перевести `createTestApp` на `createSqliteStore(":memory:")` и удалить `src/jsonStore`,
+`tests/jsonStore`, скрипт `test:jsonStore`.
 
 ### Риск к наблюдению
 
