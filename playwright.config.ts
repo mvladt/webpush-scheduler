@@ -5,9 +5,9 @@ export default defineConfig({
   timeout: 120000,
   use: {
     channel: "chrome",
-    headless: false,
+    headless: !!process.env.CI,
     launchOptions: {
-      args: ["--ozone-platform=x11"],
+      args: process.env.CI ? [] : ["--ozone-platform=x11"],
     },
     permissions: ["notifications"],
   },

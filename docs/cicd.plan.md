@@ -18,43 +18,44 @@
 
 ### 1.1. Создать `.github/workflows/ci.yml`
 
-- [ ] Триггеры:
+- [x] Триггеры:
   - `push` (все ветки)
   - `pull_request` (в `main`)
-- [ ] `concurrency` — отменять предыдущие запуски на той же ветке/PR (`group: ci-${{ github.ref }}`, `cancel-in-progress: true`).
-- [ ] Дефолтные `permissions: contents: read`.
+- [x] `concurrency` — отменять предыдущие запуски на той же ветке/PR (`group: ci-${{ github.ref }}`, `cancel-in-progress: true`).
+- [x] Дефолтные `permissions: contents: read`.
 
 ### 1.2. Job `test` — шаги
 
-- [ ] `actions/checkout@<sha>`
-- [ ] `actions/setup-node@<sha>` с `node-version: 22.18` + `cache: npm`
-- [ ] `npm ci`
-- [ ] **Typecheck:** `npx tsc` (использует существующий `tsconfig.json` с `noEmit: true`)
-- [ ] **Unit-тесты env:** `npm run test:env`
-- [ ] **Unit-тесты jsonStore:** `npm run test:jsonStore`
-- [ ] **Integration-тесты:** `npm run test:integration`
-- [ ] **Аудит npm:** `npm audit --audit-level=high` (не падает на low/moderate)
+- [x] `actions/checkout@v4` _(пока по тегу, не SHA — pin-by-SHA отложен до этапа 4 вместе с Dependabot)_
+- [x] `actions/setup-node@v4` с `node-version: "22"` + `cache: npm` _(взял мажор `22` вместо `22.18` — совпадает с сервером v22.20 и engines `>= 22.18`)_
+- [x] `npm ci`
+- [x] **Typecheck:** `npx tsc` (использует существующий `tsconfig.json` с `noEmit: true`)
+- [x] **Unit-тесты env:** `npm run test:env`
+- [x] **Unit-тесты jsonStore:** `npm run test:jsonStore`
+- [x] **Unit-тесты sqliteStore:** `npm run test:sqliteStore` _(добавлено — появилось после миграции на SQLite, плана ещё не было)_
+- [x] **Integration-тесты:** `npm run test:integration`
+- [x] **Аудит npm:** `npm audit --audit-level=high` (не падает на low/moderate). При внедрении нашёл 2 high + 3 moderate в транзитивных зависимостях (`jws`, `path-to-regexp`, `qs`, `body-parser`, `bn.js`) — устранены через `npm audit fix`.
 
 ### 1.3. Job `e2e` (Playwright)
 
-- [ ] Запускать всегда (на push в любую ветку и PR). Если поплывёт — переедем на label-based trigger.
-- [ ] Шаги:
-  - [ ] checkout + setup-node + `npm ci`
-  - [ ] `npx playwright install --with-deps chromium`
-  - [ ] `CI=1 npm run test:playwright`
-- [ ] Адаптировать `playwright.config.ts`:
+- [x] Запускать всегда (на push в любую ветку и PR). Если поплывёт — переедем на label-based trigger.
+- [x] Шаги:
+  - [x] checkout + setup-node + `npm ci`
+  - [x] `npx playwright install --with-deps chrome` _(именно `chrome`, а не `chromium` — config использует `channel: "chrome"`, это брендированный Google Chrome)_
+  - [x] `npm run test:playwright` _(`CI=true` GitHub Actions выставляет сам, явный `CI=1` не нужен)_
+- [x] Адаптировать `playwright.config.ts`:
   ```ts
   headless: !!process.env.CI,
-  launchOptions: process.env.CI ? {} : { args: ["--ozone-platform=x11"] },
+  launchOptions: { args: process.env.CI ? [] : ["--ozone-platform=x11"] },
   ```
-- [ ] При падении — загружать артефакты:
-  - `actions/upload-artifact@<sha>` с `test-results/` и `playwright-report/`.
+- [x] При падении — загружать артефакты:
+  - `actions/upload-artifact@v4` с `test-results/` и `playwright-report/`.
   - `if: failure()`.
 
 ### 1.4. Совместимость workflow с уже-настроенной средой
 
-- [ ] Тесты используют `node:test` + чистый Node — никаких трюков с tsx/ts-node не нужно.
-- [ ] Перед прогоном проверить: `.env` либо отсутствует (env-модуль создаст), либо подложен. В worker'е чисто — `loadEnv()` сам сгенерирует. Возможна гонка между параллельными тестами на запись `.env` — если воспроизведётся, изолировать через `tmpdir`.
+- [x] Тесты используют `node:test` + чистый Node — никаких трюков с tsx/ts-node не нужно.
+- [x] Перед прогоном проверить: `.env` либо отсутствует (env-модуль создаст), либо подложен. В worker'е чисто — `loadEnv()` сам сгенерирует. `createTestApp()` генерирует свои VAPID-ключи, так что integration/e2e не зависят от `.env`. Гонка на запись `.env` локально не воспроизвелась.
 
 ---
 
