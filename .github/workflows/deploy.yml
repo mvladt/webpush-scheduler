@@ -1,0 +1,72 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: webpush-scheduler-deploy
+  cancel-in-progress: false
+
+env:
+  DEPLOY_HOST: 188.225.37.62
+  DEPLOY_USER: webpush-scheduler
+  DEPLOY_ROOT: /srv/webpush-scheduler
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Собрать артефакт
+        run: npm ci --omit=dev
+
+      - name: SHA релиза
+        id: release
+        run: echo "sha=$(git rev-parse --short=12 HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Настроить SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "${{ secrets.DEPLOY_HOST_KEY }}" > ~/.ssh/known_hosts
+
+      - name: Залить артефакт релиза
+        env:
+          SHA: ${{ steps.release.outputs.sha }}
+        run: |
+          SSH="ssh -i $HOME/.ssh/deploy_key -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o IdentitiesOnly=yes"
+          RELEASE="$DEPLOY_ROOT/releases/$SHA"
+          $SSH "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p $RELEASE"
+          rsync -az -e "$SSH" src node_modules package.json package-lock.json \
+            "$DEPLOY_USER@$DEPLOY_HOST:$RELEASE/"
+
+      - name: Переключить релиз и перезапустить сервис
+        env:
+          SHA: ${{ steps.release.outputs.sha }}
+        run: |
+          SSH="ssh -i $HOME/.ssh/deploy_key -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o IdentitiesOnly=yes"
+          RELEASE="$DEPLOY_ROOT/releases/$SHA"
+          $SSH "$DEPLOY_USER@$DEPLOY_HOST" "
+            ln -sfn $DEPLOY_ROOT/data/.env $RELEASE/.env &&
+            ln -sfn $DEPLOY_ROOT/data/notifications.db $RELEASE/notifications.db &&
+            ln -sfn $RELEASE $DEPLOY_ROOT/current &&
+            sudo systemctl restart webpush-scheduler &&
+            ls -1dt $DEPLOY_ROOT/releases/*/ | tail -n +6 | xargs -r rm -rf
+          "
+
+      - name: Проверить прод
+        run: |
+          sleep 2
+          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 https://scheduler.push.mvladt.ru/api/health)
+          echo "Ответ /api/health: $code"
+          if [ "$code" != "200" ]; then
+            echo "Ожидался 200, получено $code"
+            exit 1
+          fi

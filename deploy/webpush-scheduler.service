@@ -1,0 +1,15 @@
+[Unit]
+Description=Webpush Scheduler
+After=network.target
+
+[Service]
+Type=simple
+User=webpush-scheduler
+WorkingDirectory=/srv/webpush-scheduler/current
+ExecStart=/usr/bin/node src/main.ts
+Restart=on-failure
+RestartSec=3
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

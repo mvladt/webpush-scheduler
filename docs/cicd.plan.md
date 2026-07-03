@@ -3,8 +3,8 @@
 ## Содержание
 
 - [Этап 1. CI: тесты и typecheck](#этап-1-ci-тесты-и-typecheck)
-- [Этап 2. Подготовка сервера: systemd-юнит](#этап-2-подготовка-сервера-systemd-юнит)
-- [Этап 3. CD: автодеплой по SSH](#этап-3-cd-автодеплой-по-ssh)
+- [Этап 2. Подготовка сервера: пользователь, каталоги, systemd, nginx](#этап-2-подготовка-сервера-пользователь-каталоги-systemd-nginx)
+- [Этап 3. CD: автодеплой через GitHub Actions (rsync + releases/symlink)](#этап-3-cd-автодеплой-через-github-actions-rsync--releasessymlink)
 - [Этап 4. Безопасность и автоматизация](#этап-4-безопасность-и-автоматизация)
 - [Этап 5. Документация и удобство](#этап-5-документация-и-удобство)
 - [Файлы для создания/изменения](#файлы-для-созданияизменения)
@@ -59,22 +59,54 @@
 
 ---
 
-## Этап 2. Подготовка сервера: systemd-юнит
+## Обновление плана (сервер SPB переустановлен)
 
-Цель — закрыть TODO из `server-management/CLAUDE.md` («scheduler не под systemd») и иметь чистую цель для `systemctl restart` из CD-workflow.
+Сервер был переустановлен с нуля после того, как писались этапы 2–3 ниже в их первой версии.
+Актуальное состояние (проверено вручную по SSH):
 
-### 2.1. Подготовка (одноразово, руками на сервере)
+- Node ставится **системно** через NodeSource (`apt`), сейчас `/usr/bin/node` v24.18.0 —
+  никакого `nvm` на сервере больше нет.
+- `webpush-scheduler` на сервере отсутствует полностью: ни каталога, ни systemd-юнита, ни
+  процесса. Запись «Node v22 / systemd: webpush-scheduler.service» в `server-management/CLAUDE.md`
+  не соответствовала реальности.
+- Порт **3001 занят** соседним проектом `dexity-server` (Fastify, systemd, `/srv/dexity`) — у
+  `webpush-scheduler` и `dexity` в конфигах был прописан один и тот же порт, это конфликт. Для
+  `webpush-scheduler` выбран **порт 3002**.
+- У `dexity` уже есть рабочий, проверенный на этом сервере паттерн деплоя
+  (`~/Projects/MyOwn/dexity/deploy/`, `.github/workflows/deploy.yml`): выделенный системный
+  пользователь, immutable-артефакт из CI, `releases/<sha>` + симлинк `current`, `rsync` по SSH,
+  ручной `workflow_dispatch`, узкий `sudo` только на `systemctl restart`.
 
-- [ ] Залогиниться на SPB, найти и убить старый nohup-процесс (`kill 3387331` или эквивалент).
-- [ ] На сервере пока только `nvm` + Node v22.20 (см. `cicd.task.md`). После перехода проекта на
-      `node:sqlite` нужен Node ≥ 24: `nvm install 24`, проверить итоговый путь бинаря
-      (`nvm which 24`) — он пойдёт в `ExecStart` юнита (2.2).
-- [ ] Проверить, что `/root/projects/webpush-scheduler/` чистый, синхронизирован с `origin/main`.
-- [ ] Прогнать `npm ci --omit=dev`.
+Этапы 2–3 переписаны под этот же паттерн. Решения A–E из первой версии плана (root, `command=` в
+SSH-ключе, job внутри `ci.yml`, `git reset --hard`, автооткат через `deploy.sh`) **не действуют** —
+оставлены в конце файла для истории, с пометкой о том, чем заменены.
+
+---
+
+## Этап 2. Подготовка сервера: пользователь, каталоги, systemd, nginx
+
+Цель — поднять `webpush-scheduler` на сервере с нуля, по образу уже работающего `dexity-server`.
+
+### 2.1. Системный пользователь и каталоги (одноразово, руками на сервере)
+
+- [ ] Node уже установлен системно (NodeSource, v24.18.0) — отдельно ставить не нужно.
+- [ ] Создать пользователя и каталоги:
+  ```sh
+  mkdir -p /srv/webpush-scheduler/releases /srv/webpush-scheduler/data
+  useradd --system --home /srv/webpush-scheduler --shell /bin/bash webpush-scheduler
+  chown -R webpush-scheduler:webpush-scheduler /srv/webpush-scheduler
+  ```
+- [ ] `.env` — вручную положить в `/srv/webpush-scheduler/data/.env` (владелец `webpush-scheduler`,
+      права `600`), `PORT=3002` (3001 занят `dexity-server`).
+- [ ] **Важно:** `.env` и `notifications.db` читаются по относительному пути от `cwd` (дефолты в
+      `loadEnv()` и `createSqliteStore()`) — если оставить их внутри `releases/<sha>`, каждый деплой
+      будет создавать новые VAPID-ключи и пустую базу. Оба файла живут в `data/` вне `releases/` и
+      симлинкуются в каждый релиз (см. 3.3).
 
 ### 2.2. Создать `/etc/systemd/system/webpush-scheduler.service`
 
-По образу `mvladt-nuxt.service` (на сервере — `systemctl cat mvladt-nuxt.service`). Примерное содержимое:
+По образу `dexity/deploy/dexity-server.service`. Файл сначала кладём в репозиторий
+(`deploy/webpush-scheduler.service`, см. 2.4), на сервер копируем при первичной настройке:
 
 ```ini
 [Unit]
@@ -83,9 +115,9 @@ After=network.target
 
 [Service]
 Type=simple
-User=root
-WorkingDirectory=/root/projects/webpush-scheduler
-ExecStart=/root/.nvm/versions/node/v24.18.0/bin/node src/main.ts
+User=webpush-scheduler
+WorkingDirectory=/srv/webpush-scheduler/current
+ExecStart=/usr/bin/node src/main.ts
 Restart=on-failure
 RestartSec=3
 Environment=NODE_ENV=production
@@ -94,135 +126,144 @@ Environment=NODE_ENV=production
 WantedBy=multi-user.target
 ```
 
-- [ ] Не передавать `--env-file .env` — текущий код подгружает `.env` через `loadEnv()`.
-- [ ] `WorkingDirectory` — `/root/projects/webpush-scheduler`, чтобы `.env` и `notifications.json` лежали рядом.
-- [ ] Node-версия: жёсткий путь к бинарю nvm (решено — пользователь предпочитает явность). При апгрейде Node путь придётся обновить руками в юните и перезапустить сервис — иначе systemd молча продолжит стартовать старую версию.
+- [ ] `WorkingDirectory` — `current` (симлинк на актуальный релиз), не сам релиз: путь в юните не
+      меняется между деплоями.
+- [ ] Node — системный бинарь `/usr/bin/node`, без версии в пути (в отличие от первой версии плана
+      с жёстким nvm-путём): апгрейд Node через apt/NodeSource подхватится сам, без правки юнита.
+- [ ] `systemctl daemon-reload`, `systemctl enable webpush-scheduler` (не `--now` — сервису ещё
+      нечего стартовать, первый релиз положит workflow деплоя, см. этап 3).
 
-### 2.3. Активация
+### 2.3. nginx + TLS
 
-- [ ] `systemctl daemon-reload`
-- [ ] `systemctl enable --now webpush-scheduler`
-- [ ] Проверить: `systemctl status webpush-scheduler`, `curl http://localhost:3001/api/health`, `curl https://scheduler.push.mvladt.ru/api/health`.
-- [ ] Проверить, что после `reboot` сервис поднимается сам.
+Домена `scheduler.push.mvladt.ru` сейчас нет ни в одном nginx-конфиге на сервере. Настраиваем с
+нуля, по образу `dexity/nginx/dexity.conf`:
 
-### 2.4. Обновить `server-management/CLAUDE.md`
+- [ ] Сначала только `:80`-блок (ACME) и выпуск сертификата:
+  ```sh
+  certbot certonly --webroot -w /var/www/html -d scheduler.push.mvladt.ru
+  ```
+- [ ] Затем полный конфиг из `nginx/webpush-scheduler.conf` (см. 2.4) →
+      `/etc/nginx/conf.d/webpush-scheduler.conf`, `nginx -t && systemctl reload nginx`.
+- [ ] Метод `webroot`, не `--nginx`-плагин — домен терминирует TLS на `127.0.0.1:8443` за Xray
+      Reality fallback, `--nginx`-плагин может отредактировать не тот файл.
 
-- [ ] Снять чекбокс TODO «scheduler не под systemd».
-- [ ] Изменить колонку «Управление» в таблице приложений: `systemd: webpush-scheduler.service`.
+### 2.4. Подготовить файлы деплоя в репозитории webpush-scheduler
+
+- [ ] `deploy/webpush-scheduler.service` — юнит из 2.2.
+- [ ] `nginx/webpush-scheduler.conf` — по образу `dexity/nginx/dexity.conf`, но с одним
+      `location /` без разделения на статику/`/api/` — webpush-scheduler сам отдаёт и статику
+      (`src/client/`), и API из одного Express-процесса:
+  ```nginx
+  server {
+      listen 127.0.0.1:8443 ssl;
+      server_name scheduler.push.mvladt.ru;
+
+      ssl_certificate     /etc/letsencrypt/live/scheduler.push.mvladt.ru/fullchain.pem;
+      ssl_certificate_key /etc/letsencrypt/live/scheduler.push.mvladt.ru/privkey.pem;
+
+      add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+      add_header X-Content-Type-Options    "nosniff" always;
+      add_header X-Frame-Options           "DENY" always;
+
+      location / {
+          proxy_pass http://127.0.0.1:3002;
+          proxy_http_version 1.1;
+          proxy_set_header Host $host;
+          proxy_set_header X-Real-IP $remote_addr;
+      }
+  }
+
+  server {
+      listen 80;
+      server_name scheduler.push.mvladt.ru;
+      location /.well-known/acme-challenge/ { root /var/www/html; }
+      location / { return 301 https://$host$request_uri; }
+  }
+  ```
+- [ ] `deploy/README.md` — по образу `dexity/deploy/README.md`: команды первичной настройки
+      сервера (2.1–2.3), структура `/srv/webpush-scheduler/`, ручной деплой (fallback, без CI).
+
+### 2.5. Обновить `server-management/CLAUDE.md`
+
+- [ ] Таблица приложений: `scheduler.push.mvladt.ru` — порт `3002` (не `3001`), управление —
+      `systemd: webpush-scheduler.service`, деплой — GitHub Actions → rsync → `/srv/webpush-scheduler`.
+- [ ] Убрать текущую неверную запись про systemd — на момент её написания сервис не был развёрнут
+      физически, документ не был синхронизирован с реальностью (пере)установки сервера.
 
 ---
 
-## Этап 3. CD: автодеплой по SSH
+## Этап 3. CD: автодеплой через GitHub Actions (rsync + releases/symlink)
 
-### 3.1. Подготовка SSH-доступа для CI
+По образу `dexity/.github/workflows/deploy.yml`. Артефакт immutable, собирается в CI, на сервере —
+только распаковка и рестарт.
 
-- [ ] Сгенерировать **отдельный** ed25519-ключ только для CI:
+### 3.1. Артефакт деплоя
+
+- [ ] Build-шаг не нужен — весь `src/` выполняется напрямую (Node 24 стрипает типы на лету), в
+      отличие от `dexity`, где `server/dist` собирается через `tsc`/бандлер.
+- [ ] Артефакт — `src/`, `package.json`, `package-lock.json`, `node_modules/` после
+      `npm ci --omit=dev`. Так как `better-sqlite3` убран (переход на `node:sqlite`, см.
+      `docs/archive/node24-builtin-sqlite.result.md`), `node_modules` состоит только из чистого JS —
+      переносится с раннера CI на сервер без проблем с нативными бинарниками/архитектурой.
+
+### 3.2. Подготовка SSH-доступа для CI
+
+- [ ] Отдельный ed25519-ключ только для CI (не тот же, что личные):
   ```sh
   ssh-keygen -t ed25519 -C "github-actions-webpush-scheduler" -f ~/.ssh/gha_webpush -N ""
   ```
-- [ ] Положить публичный ключ в `/root/.ssh/authorized_keys` на SPB с ограничением команды (решено — включаем сразу):
-  ```
-  command="/root/projects/webpush-scheduler/scripts/deploy.sh",no-port-forwarding,no-X11-forwarding,no-agent-forwarding ssh-ed25519 AAAA... github-actions-webpush-scheduler
-  ```
-  Ключ CI сможет запустить только `deploy.sh`, а не произвольный shell под root.
-- [ ] `scripts/deploy.sh` — обязателен (см. ниже), т.к. ключ ограничен `command="..."`.
-
-### 3.2. Добавить `scripts/deploy.sh` (запускается на сервере)
-
-- [ ] Скрипт идемпотентный, выполняется в `WorkingDirectory` сервиса:
+- [ ] Публичный ключ → `/srv/webpush-scheduler/.ssh/authorized_keys` (владелец
+      `webpush-scheduler`, права `700`/`600`), **без** `command="..."` — деплой через `rsync`
+      использует SSH для передачи файлов, а не для запуска одной фиксированной команды (в отличие
+      от первой версии плана со `scripts/deploy.sh`).
+- [ ] Узкий `sudo` — только рестарт сервиса (как у `dexity`, см. `/etc/sudoers.d/dexity-deploy`):
   ```sh
-  #!/usr/bin/env bash
-  set -euo pipefail
-  cd /root/projects/webpush-scheduler
-  source /root/.nvm/nvm.sh
-  nvm use --lts >/dev/null 2>&1 || true
-
-  wait_healthy() {
-    for i in {1..15}; do
-      if curl -fsS http://localhost:3001/api/health >/dev/null; then
-        return 0
-      fi
-      sleep 1
-    done
-    return 1
-  }
-
-  PREV=$(git rev-parse HEAD)
-  git fetch --prune origin
-  git reset --hard origin/main
-  npm ci --omit=dev
-  systemctl restart webpush-scheduler
-
-  if wait_healthy; then
-    echo "healthy"
-    exit 0
-  fi
-
-  echo "FAIL: health check timeout, rolling back to $PREV"
-  git reset --hard "$PREV"
-  npm ci --omit=dev
-  systemctl restart webpush-scheduler
-
-  if wait_healthy; then
-    echo "rolled back to $PREV, but deploy FAILED"
-  else
-    echo "rollback ALSO failed, service is down"
-    systemctl status webpush-scheduler --no-pager | tail -30
-  fi
-  exit 1
-  ```
-  Автооткат — одна попытка, без цикла: если сам откат не поднимает сервис, скрипт не зацикливается,
-  а просто падает красным с диагностикой в логе. Сервис либо жив на предыдущей версии, либо разбор
-  руками неизбежен в любом случае.
-- [ ] `chmod +x scripts/deploy.sh`. Файл коммитится в репо — он становится «источником истины» для процедуры деплоя.
-
-### 3.3. Добавить job `deploy` в `.github/workflows/ci.yml`
-
-Решено (D) — не отдельный `deploy.yml`, а job **внутри `ci.yml`**: `needs: [test, e2e]`,
-`if: github.ref == 'refs/heads/main'`. Тесты гоняются один раз, деплой стартует только
-после их успеха — без дублирования и без хрупкого `workflow_run` между двумя workflow.
-
-- [ ] `needs: [test, e2e]`
-- [ ] `if: github.ref == 'refs/heads/main' && github.event_name == 'push'`
-- [ ] Environment: `production` (см. этап 4.4).
-- [ ] Permissions job'а: `contents: read`.
-- [ ] `workflow_dispatch` как триггер всего `ci.yml` — на случай ручного деплоя без нового пуша.
-
-### 3.4. Шаги job `deploy`
-
-- [ ] Установить ssh-agent: `webfactory/ssh-agent@<sha>` с `ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}`.
-- [ ] Добавить host в known_hosts: `ssh-keyscan -H 188.225.37.62 >> ~/.ssh/known_hosts` (или хранить отпечаток в Secret и `ssh-keygen -lf`).
-- [ ] Запустить (ключ ограничен `command="..."` в `authorized_keys` — команда после `ssh` игнорируется сервером и не нужна):
-  ```sh
-  ssh root@188.225.37.62
-  ```
-- [ ] Внешний smoke после деплоя:
-  ```sh
-  curl --fail --retry 5 --retry-delay 2 https://scheduler.push.mvladt.ru/api/health
+  echo 'webpush-scheduler ALL=(root) NOPASSWD: /usr/bin/systemctl restart webpush-scheduler' \
+    > /etc/sudoers.d/webpush-scheduler-deploy
+  chmod 440 /etc/sudoers.d/webpush-scheduler-deploy
   ```
 
-### 3.5. Секреты в GitHub (Settings → Secrets and variables → Actions → Environments → production)
+### 3.3. Создать `.github/workflows/deploy.yml`
 
-- [ ] `DEPLOY_SSH_KEY` — приватный ключ ed25519 (в формате OpenSSH), который кладём в `authorized_keys` сервера.
-- [ ] `DEPLOY_HOST` (опционально, для гибкости): `188.225.37.62`.
-- [ ] `DEPLOY_USER`: `root`.
+- [ ] Триггер — только `workflow_dispatch` (ручная кнопка в Actions), без параметров. Отдельно от
+      `ci.yml` — тот гоняется на каждый push/PR в `main` (typecheck + тесты), деплоем не
+      блокируется автоматически.
+- [ ] Шаги (по образу `dexity`, без блока `client`):
+  - `actions/checkout@v4`, `actions/setup-node@v4` (`node-version: 24`, `cache: npm`).
+  - `npm ci --omit=dev`.
+  - SHA релиза: `git rev-parse --short=12 HEAD`.
+  - ssh-agent с `secrets.DEPLOY_SSH_KEY`, known_hosts из `secrets.DEPLOY_HOST_KEY`
+    (`ssh-keyscan -t ed25519 188.225.37.62`).
+  - `mkdir -p /srv/webpush-scheduler/releases/$SHA` на сервере, затем
+    `rsync -az src node_modules package.json package-lock.json
+    webpush-scheduler@188.225.37.62:/srv/webpush-scheduler/releases/$SHA/`.
+  - На сервере: симлинки `data/.env` и `data/notifications.db` внутрь релиза, переключить
+    `current` на новый релиз, `sudo systemctl restart webpush-scheduler`, почистить старые релизы
+    (оставить последние 5).
+  - Прод-проверка: `curl -fsS https://scheduler.push.mvladt.ru/api/health`.
+- [ ] `concurrency: { group: webpush-scheduler-deploy, cancel-in-progress: false }` — не отменять
+      деплой в процессе повторным запуском.
 
-### 3.6. Откат
+### 3.4. Секреты в GitHub (Settings → Secrets and variables → Actions)
 
-Решено (E) — автооткат в `deploy.sh` (см. 3.2): при провале health-check скрипт сам возвращается
-на предыдущий коммит (`PREV`), переустанавливает зависимости и перезапускает сервис — **одна
-попытка**, без цикла. Итог зелёный при первом успехе, иначе билд красный, но сервис жив на старой
-версии (или упал совсем, если и откат не поднялся — тогда разбор руками неизбежен).
+- [ ] `DEPLOY_SSH_KEY` — приватный ключ из 3.2.
+- [ ] `DEPLOY_HOST_KEY` — вывод `ssh-keyscan -t ed25519 188.225.37.62`.
 
-- [ ] Документировать в `README.md` (или отдельным `docs/deploy.md`) процедуру ручного отката
-      на случай, если автооткат тоже не помог:
-  ```sh
-  ssh root@188.225.37.62
-  cd /root/projects/webpush-scheduler
-  git reset --hard <SHA-of-known-good>
-  npm ci --omit=dev
-  systemctl restart webpush-scheduler
-  ```
+### 3.5. Откат
+
+Симлинк `current` держит последний релиз, предыдущие остаются в `releases/` (последние 5). Откат —
+переключить симлинк на нужный `releases/<sha>` и перезапустить сервис, без пересборки:
+
+```sh
+ssh webpush-scheduler@188.225.37.62 "
+  ln -sfn /srv/webpush-scheduler/releases/<sha-of-known-good> /srv/webpush-scheduler/current &&
+  sudo systemctl restart webpush-scheduler
+"
+```
+
+Автооткат в сам workflow не встраиваем (проще руками переключить на готовый предыдущий релиз, чем
+городить логику отката в CI, как в первой версии плана с `deploy.sh`) — команда документируется в
+`deploy/README.md` (2.4).
 
 ---
 
@@ -260,11 +301,12 @@ WantedBy=multi-user.target
 - [ ] Disallow deletions.
 - [ ] PR-перед-merge — на усмотрение. Для одиночного автора можно оставить прямой push в main с обязательными checks.
 
-### 4.4. GitHub Environment `production`
+### 4.4. GitHub Environment `production` — не заводим
 
-- [ ] Создать environment `production`, привязать секреты деплоя (3.5).
-- [ ] **Без required reviewer** — деплой автоматический (пользователь так попросил).
-- [ ] Указать URL: `https://scheduler.push.mvladt.ru` — будет красивая ссылка в UI деплоев.
+Деплой теперь ручной (`workflow_dispatch`, см. 3.3), а не автоматический по push — required reviewer
+и штатное окружение GitHub не добавляют защиты сверх самой ручной кнопки. `dexity/deploy.yml`
+работает так же, без `environment:` — секреты (3.4) достаточно держать на уровне репозитория.
+Можно вернуться к этому пункту, если деплой снова станет автоматическим.
 
 ### 4.5. Pin actions by SHA
 
@@ -283,8 +325,12 @@ WantedBy=multi-user.target
 - [ ] Бейджи в шапку:
   ```markdown
   ![CI](https://github.com/mvladt/webpush-scheduler/actions/workflows/ci.yml/badge.svg)
+  ![Deploy](https://github.com/mvladt/webpush-scheduler/actions/workflows/deploy.yml/badge.svg)
   ```
-- [ ] Раздел «Деплой» — короткое описание: push в main → тесты → SSH-деплой (job `deploy` в том же `ci.yml`) → health-check (+ автооткат при провале).
+- [ ] Раздел «Деплой» — короткое описание: ручной запуск workflow `Deploy` в Actions → CI собирает
+      артефакт (`npm ci --omit=dev`) → `rsync` в новый `releases/<sha>` на сервере → симлинк
+      `current` переключается → `systemctl restart` → health-check. Подробности — в
+      `deploy/README.md`.
 
 ### 5.2. PR template
 
@@ -307,21 +353,27 @@ WantedBy=multi-user.target
 | Действие | Файл                                       | Этап |
 | -------- | ------------------------------------------ | ---- |
 | Создать  | `.github/workflows/ci.yml`                 | 1    |
-| Изменить | `.github/workflows/ci.yml` (добавить job `deploy`) | 3 |
+| Создать  | `.github/workflows/deploy.yml`             | 3    |
+| Создать  | `deploy/webpush-scheduler.service`         | 2    |
+| Создать  | `deploy/README.md`                         | 2    |
+| Создать  | `nginx/webpush-scheduler.conf`             | 2    |
 | Создать  | `.github/workflows/codeql.yml`             | 4    |
 | Создать  | `.github/dependabot.yml`                   | 4    |
 | Создать  | `.github/pull_request_template.md`         | 5    |
-| Создать  | `scripts/deploy.sh`                        | 3    |
 | Изменить | `playwright.config.ts` (headless под CI)   | 1    |
 | Изменить | `README.md` (бейджи + раздел деплоя)       | 5    |
 | Изменить | `CLAUDE.md` (раздел CI/CD)                 | 5    |
+| Создать (на сервере) | пользователь и каталоги `/srv/webpush-scheduler/` | 2 |
 | Создать (на сервере) | `/etc/systemd/system/webpush-scheduler.service` | 2 |
-| Изменить (на сервере) | `/root/.ssh/authorized_keys` (deploy-ключ) | 3 |
-| Изменить | `~/Projects/MyOwn/server-management/CLAUDE.md` (снять TODO) | 2 |
+| Создать (на сервере) | `/etc/nginx/conf.d/webpush-scheduler.conf` + TLS-сертификат | 2 |
+| Создать (на сервере) | `/srv/webpush-scheduler/.ssh/authorized_keys` (deploy-ключ) | 3 |
+| Создать (на сервере) | `/etc/sudoers.d/webpush-scheduler-deploy`  | 3 |
+| Изменить | `~/Projects/MyOwn/server-management/CLAUDE.md` (порт, статус деплоя) | 2 |
 
 Не создаём (отложено):
-- `.github/workflows/release.yml` (GHCR push) — пока деплой нативный, образ не нужен.
-- `.dockerignore` / правки `Dockerfile` — пока Docker на сервере не появится.
+- `.github/workflows/release.yml` (GHCR push) — деплой нативный (rsync), образ не нужен.
+- `.dockerignore` / правки `Dockerfile` — Dockerfile не используется в CD, но актуализирован
+  (`node:24-alpine`) на случай будущего использования.
 
 ---
 
@@ -329,9 +381,11 @@ WantedBy=multi-user.target
 
 1. **Этап 1** — CI с тестами. Безопасно, на прод не влияет. Сразу видим, что workflow зелёный.
 2. **Этап 4.1 + 4.3 + 4.5** — Dependabot, защита ветки, pin actions. Тоже без рисков.
-3. **Этап 2** — systemd-юнит на сервере. Это критичный момент, делаем вручную, на месте проверяем. Здесь возможен короткий downtime (пока убиваем nohup и поднимаем systemd).
-4. **Этап 3** — CD-workflow. Сначала пробуем `workflow_dispatch` руками, потом включаем `workflow_run`.
-5. **Этап 4.2 + 4.4** — CodeQL, GitHub Environment.
+3. **Этап 2** — пользователь, каталоги, systemd, nginx на сервере. Критичный момент (первое
+   появление сервиса на переустановленном сервере), делаем вручную, на месте проверяем.
+4. **Этап 3** — CD-workflow. `workflow_dispatch` сразу, без промежуточного варианта — деплой
+   ручной по дизайну (см. вопрос D в старой версии плана ниже).
+5. **Этап 4.2** — CodeQL. (4.4 не делаем, см. выше.)
 6. **Этап 5** — документация.
 
 Каждый этап — самостоятельный коммит/PR.
@@ -340,15 +394,20 @@ WantedBy=multi-user.target
 
 ## Открытые вопросы
 
-1. ~~Как развёрнут сервер?~~ → нативно на SPB, не под systemd, см. этап 2.
+1. ~~Как развёрнут сервер?~~ → нативно на SPB, изначально не под systemd; после переустановки
+   сервера — заново, под systemd, по образу `dexity` (см. «Обновление плана» и этап 2).
 2. ~~Репо публичный?~~ → да (проверил через `gh`).
 3. ~~`notifications.json` — что с ним?~~ → пользователь сказал «фиг с ним», volume не нужен.
-4. ~~Ручное подтверждение деплоя?~~ → автомат.
+4. ~~Ручное подтверждение деплоя?~~ → изначально «автомат», после переустановки сервера и
+   перехода на паттерн `dexity` — **ручной `workflow_dispatch`** (см. вопрос D ниже и этап 3.3).
 5. ~~`/api/health`?~~ → есть, `src/router/router.ts`.
 6. ~~Playwright в CI?~~ → да, всегда.
 7. ~~ESLint/Prettier?~~ → отложено, см. `eslint-prettier.task.md`.
 
-**Ответы на открытые вопросы A–E:**
+**Ответы на открытые вопросы A–E (первая версия плана, до переустановки сервера).**
+Актуальны только как история решений — сервер был переустановлен, обнаружился конфликт портов и
+готовый паттерн деплоя `dexity` на этом же сервере, и большинство решений ниже заменены (см.
+«Обновление плана» и вопросы F–G):
 
 A. ~~SSH-пользователь для деплоя?~~ → **root** (как есть сейчас).
 
@@ -359,3 +418,14 @@ C. ~~Node-версия в systemd-юните?~~ → **жёсткий путь к
 D. ~~Триггер деплоя?~~ → **job `deploy` внутри `ci.yml`**, а не отдельный `deploy.yml`: `needs: [test, e2e]` + `if: github.ref == 'refs/heads/main'`. Тесты гоняются один раз (обычная зависимость job'ов, не хрупкий `workflow_run` между разными workflow), деплой стартует только после их успеха.
 
 E. ~~Падение деплоя — что делать?~~ → **автооткат в `deploy.sh`**, одна попытка без цикла: при провале health-check скрипт возвращается на предыдущий коммит, переустанавливает зависимости и перезапускает сервис. Если и откат не поднялся — красный билд с диагностикой, разбор руками.
+
+**Вопросы F–G (после переустановки сервера):**
+
+F. **Какой порт для webpush-scheduler?** Порт 3001 занят `dexity-server`. → **3002.**
+
+G. **Какой паттерн деплоя использовать?** Продолжить старый план (root, `git reset --hard` на
+месте, push в main как триггер) или повторить уже работающий на этом сервере паттерн `dexity`
+(выделенный системный пользователь, immutable-артефакт из CI, `releases/<sha>` + симлинк
+`current`, `rsync`, ручной `workflow_dispatch`, узкий `sudo`)? → **паттерн `dexity`.** Проверенная
+на этом же сервере схема, безопаснее (не root), откат — просто переключить симлинк. Это отменяет
+решения A, B, D, E выше — см. этапы 2–3 в актуальной редакции.
