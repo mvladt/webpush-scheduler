@@ -1,4 +1,4 @@
-import Database from "better-sqlite3";
+import { DatabaseSync } from "node:sqlite";
 
 import { validateDatetime } from "../validateDatetime.ts";
 import type { NotificationEntity, NotificationStore } from "../types.ts";
@@ -13,7 +13,7 @@ type Row = {
 export const createSqliteStore = (
   filename: string = "notifications.db"
 ): NotificationStore => {
-  const db = new Database(filename);
+  const db = new DatabaseSync(filename);
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS notifications (
@@ -36,9 +36,16 @@ export const createSqliteStore = (
     `SELECT * FROM notifications WHERE datetime <= ?`
   );
 
-  const deleteMany = db.transaction((ids: string[]) => {
-    for (const id of ids) deleteOne.run(id);
-  });
+  const deleteMany = (ids: string[]) => {
+    db.exec("BEGIN");
+    try {
+      for (const id of ids) deleteOne.run(id);
+      db.exec("COMMIT");
+    } catch (err) {
+      db.exec("ROLLBACK");
+      throw err;
+    }
+  };
 
   const rowToEntity = (row: Row): NotificationEntity => ({
     id: row.id,
