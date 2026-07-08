@@ -271,7 +271,7 @@ ssh webpush-scheduler@188.225.37.62 "
 
 ### 4.1. Dependabot
 
-- [ ] Создать `.github/dependabot.yml`:
+- [x] Создать `.github/dependabot.yml`:
   ```yaml
   version: 2
   updates:
@@ -283,7 +283,10 @@ ssh webpush-scheduler@188.225.37.62 "
       directory: "/"
       schedule: { interval: weekly }
   ```
-- [ ] **Docker-эконосистему пока не включаем** — Dockerfile не используется в CD.
+- [x] **Docker-эконосистему пока не включаем** — Dockerfile не используется в CD.
+- [x] **CodeQL (4.2) сознательно отложен** — маленький кодбейс, нет динамического SQL/`eval`/
+      рендеринга пользовательского ввода в HTML на сервере, отдача от статического анализа низкая.
+      Вернуться к вопросу, если кодовая база вырастет.
 
 ### 4.2. CodeQL
 
