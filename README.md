@@ -1,5 +1,8 @@
 # Планировщик Web Push уведомлений
 
+![CI](https://github.com/mvladt/webpush-scheduler/actions/workflows/ci.yml/badge.svg)
+![Deploy](https://github.com/mvladt/webpush-scheduler/actions/workflows/deploy.yml/badge.svg)
+
 ## Содержание
 
 - [Возможности](#возможности)
@@ -7,6 +10,7 @@
 - [Описание API](#описание-api)
 - [Хранилище](#хранилище)
 - [Архитектура](#архитектура)
+- [Деплой](#деплой)
 
 [Простой клиент](https://github.com/mvladt/webpush-dumb-client)
 
@@ -87,6 +91,13 @@ graph LR
     E --> F[Push Service<br>Chrome/Firefox/etc];
     F --> G[Браузер<br>Service Worker];
 ```
+
+## Деплой
+
+Прод — `scheduler.push.mvladt.ru` (VPS, systemd). CI (`ci.yml`) гоняет тесты на каждый push/PR,
+но деплой не автоматический: вкладка **Actions** → workflow **Deploy** → **Run workflow**
+(`workflow_dispatch`). Деплой собирает зависимости, синкает артефакт по SSH в новый релиз,
+переключает симлинк `current` и перезапускает сервис. Подробности — `deploy/README.md`.
 
 ---
 

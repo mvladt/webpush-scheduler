@@ -294,7 +294,7 @@ ssh webpush-scheduler@188.225.37.62 "
 - [ ] Запуск: на push в `main`, на PR, по cron раз в неделю.
 - [ ] Для публичного репо бесплатен — у нас именно так.
 
-### 4.3. Branch protection на `main`
+### 4.3. Branch protection на `main` — решение отложено
 
 В Settings → Branches → Add rule `main`:
 
@@ -304,6 +304,12 @@ ssh webpush-scheduler@188.225.37.62 "
 - [ ] Disallow deletions.
 - [ ] PR-перед-merge — на усмотрение. Для одиночного автора можно оставить прямой push в main с обязательными checks.
 
+**Важный нюанс:** в проекте нет PR-флоу — пушим прямо в `main`. Классический «require status
+checks to pass» у GitHub блокирует только **слияние PR**, а не прямой push — коммит уже попадёт в
+`main` до того, как отработают `test`/`e2e`. То есть на практике из всего списка реальный эффект
+дают только «disallow force pushes» и «disallow deletions» (защита истории), а не status checks.
+Ждём решения пользователя — делать ли хотя бы эти два пункта.
+
 ### 4.4. GitHub Environment `production` — не заводим
 
 Деплой теперь ручной (`workflow_dispatch`, см. 3.3), а не автоматический по push — required reviewer
@@ -311,13 +317,10 @@ ssh webpush-scheduler@188.225.37.62 "
 работает так же, без `environment:` — секреты (3.4) достаточно держать на уровне репозитория.
 Можно вернуться к этому пункту, если деплой снова станет автоматическим.
 
-### 4.5. Pin actions by SHA
+### 4.5. Pin actions by SHA — вынесено в отдельную задачу
 
-- [ ] Все `uses:` в workflow указывать **по полному SHA**, не по тегу:
-  ```yaml
-  uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
-  ```
-- [ ] Dependabot будет обновлять автоматически.
+См. `docs/pin-actions-by-sha.task.md`. Было отложено до появления Dependabot (иначе ручной pin —
+неподдерживаемый ад); Dependabot теперь есть (4.1), можно делать в отдельной итерации.
 
 ---
 
@@ -325,28 +328,23 @@ ssh webpush-scheduler@188.225.37.62 "
 
 ### 5.1. README
 
-- [ ] Бейджи в шапку:
+- [x] Бейджи в шапку:
   ```markdown
   ![CI](https://github.com/mvladt/webpush-scheduler/actions/workflows/ci.yml/badge.svg)
   ![Deploy](https://github.com/mvladt/webpush-scheduler/actions/workflows/deploy.yml/badge.svg)
   ```
-- [ ] Раздел «Деплой» — короткое описание: ручной запуск workflow `Deploy` в Actions → CI собирает
+- [x] Раздел «Деплой» — короткое описание: ручной запуск workflow `Deploy` в Actions → CI собирает
       артефакт (`npm ci --omit=dev`) → `rsync` в новый `releases/<sha>` на сервере → симлинк
       `current` переключается → `systemctl restart` → health-check. Подробности — в
       `deploy/README.md`.
 
-### 5.2. PR template
+### 5.2. PR template — не делаем
 
-- [ ] `.github/pull_request_template.md`:
-  ```markdown
-  ## Что
-  ## Зачем
-  ## Как проверял
-  ```
+В проекте нет PR-флоу (прямой push в `main`) — шаблон PR никогда не будет использован.
 
 ### 5.3. CLAUDE.md проекта
 
-- [ ] Раздел «CI/CD»: краткое описание workflow-файлов и их связи.
+- [x] Раздел «CI/CD»: краткое описание workflow-файлов и их связи.
 - [ ] Раздел «Команды» — добавить `npm run typecheck` (если решим вынести `tsc` в скрипт — опционально).
 
 ---

@@ -47,3 +47,15 @@ Node.js >= 24.0 (нужен встроенный `node:sqlite`). При перв
 ## Продакшн-сервер
 
 Деплой и состояние прод-сервера описаны в `docs/cicd.plan.md` и `docs/cicd.result.md`. Общее администрирование сервера (сервер целиком, фаервол, другие сервисы на нём) ведётся в соседнем проекте `server-management`, который лежит (скорее всего) в `~/Projects/MyOwn/`.
+
+## CI/CD
+
+- **`.github/workflows/ci.yml`** — на каждый `push`/`pull_request`: job `test` (typecheck + unit +
+  integration + `npm audit`) и job `e2e` (Playwright, реальный FCM). Никак не связан с деплоем.
+- **`.github/workflows/deploy.yml`** — только ручной `workflow_dispatch` (Actions → Deploy → Run
+  workflow). **Не проверяет статус CI** и сам тесты не гоняет — перед запуском нужно вручную
+  убедиться, что `ci.yml` зелёный на нужном коммите. Собирает `npm ci --omit=dev`, заливает
+  `src/`/`node_modules/`/`package*.json` по SSH в `/srv/webpush-scheduler/releases/<sha>`,
+  переключает симлинк `current`, перезапускает systemd-сервис.
+- **`.github/dependabot.yml`** — еженедельные PR на обновления npm-зависимостей и GitHub Actions.
+- Детали инфраструктуры (пользователь на сервере, nginx, TLS, откат) — `deploy/README.md`.
