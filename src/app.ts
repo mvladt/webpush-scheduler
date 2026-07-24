@@ -1,7 +1,8 @@
 import express from "express";
 import cors from "cors";
 import type { Router, Express } from "express";
-import type { Server } from "http";
+import type { Server } from "node:http";
+import type { AddressInfo } from "node:net";
 
 import type { NotificationScheduler } from "./scheduler/types.ts";
 import type { Logger } from "./logger/types.ts";
@@ -56,7 +57,7 @@ export const createApp = (
         throw new Error("Server is not running.");
       }
 
-      return (server.address() as any).port;
+      return (server.address() as AddressInfo).port;
     },
 
     // TODO: Нарушение инкапсуляции.
