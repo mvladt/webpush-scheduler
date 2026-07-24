@@ -24,6 +24,10 @@ jobs:
       - run: npm ci
       - name: Typecheck
         run: npx tsc
+      - name: Lint
+        run: npm run lint
+      - name: Форматирование
+        run: npm run format:check
       - name: Тесты env
         run: npm run test:env
       - name: Тесты sqliteStore
