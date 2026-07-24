@@ -16,12 +16,19 @@
 
 ## Принятые решения
 
-_(заполнить при работе над задачей)_
-
 - ESLint flat config (`eslint.config.js`) — современный формат, без устаревшего `.eslintrc`.
-- Минимальный набор правил: `@eslint/js` recommended + `typescript-eslint` recommended. Без airbnb/standard — слишком жёсткие для пет-проекта.
-- Prettier — дефолты + длина строки 100 (по аналогии с другими проектами).
-- Без `eslint-plugin-prettier` — лучше `prettier --check` отдельным шагом, конфликтов меньше.
+- Минимальный набор правил: `@eslint/js` recommended + `typescript-eslint` recommended (не
+  type-checked — без привязки к `tsconfig.json`, проще и быстрее). Без airbnb/standard — слишком
+  жёсткие для пет-проекта.
+- Prettier — дефолты + длина строки 100 (по аналогии с другими проектами). `.prettierignore`
+  исключает `package-lock.json`, `*.md` (своё форматирование таблиц по CLAUDE.md) и `data/`.
+- Без `eslint-plugin-prettier` — `prettier --check` отдельным шагом в CI, конфликтов меньше.
+- `src/client/sw.js` — единственный не-TS файл (браузерный service worker), для него в
+  `eslint.config.js` отдельный override с глобалом `self`.
+- Pre-commit хук через `simple-git-hooks`, установка — через `prepare`-скрипт (а не встроенный
+  `postinstall` пакета: npm 11+ по умолчанию блокирует install-скрипты зависимостей).
+- По ходу дела заменил два `any` на `unknown` (`Logger`, `NotificationEntity.payload`) и один
+  `as any` на корректный `as AddressInfo` в `app.ts` — иначе `no-explicit-any` падал сразу же.
 
 ## Риски
 
