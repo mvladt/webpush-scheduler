@@ -22,9 +22,7 @@ export const createFakeNotification = (
   };
 };
 
-export const createTestNotification = (
-  datetime?: string,
-): NotificationEntity => {
+export const createTestNotification = (datetime?: string): NotificationEntity => {
   return {
     id: dumbUUID(),
     payload: { title: "Test Notification", body: "Hello from test!" },

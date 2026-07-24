@@ -68,10 +68,7 @@ test("Полный цикл push-уведомления: подписка → п
       String(now.getDate()).padStart(2, "0"),
     ].join("-") +
     "T" +
-    [
-      String(now.getHours()).padStart(2, "0"),
-      String(now.getMinutes()).padStart(2, "0"),
-    ].join(":");
+    [String(now.getHours()).padStart(2, "0"), String(now.getMinutes()).padStart(2, "0")].join(":");
 
   await page.fill("#input-title", title);
   await page.fill("#input-body", body);

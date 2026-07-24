@@ -71,9 +71,7 @@
       <legend>Запланировать уведомление</legend>
       <label>Заголовок: <input id="input-title" type="text" required /></label>
       <label>Текст: <input id="input-body" type="text" /></label>
-      <label
-        >Время: <input id="input-datetime" type="datetime-local" required
-      /></label>
+      <label>Время: <input id="input-datetime" type="datetime-local" required /></label>
       <br />
       <button id="btn-schedule" disabled>Запланировать</button>
       <div id="error-box"></div>
@@ -106,9 +104,7 @@
 
       function urlBase64ToUint8Array(base64String) {
         const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-        const base64 = (base64String + padding)
-          .replace(/-/g, "+")
-          .replace(/_/g, "/");
+        const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
         const raw = atob(base64);
         const arr = new Uint8Array(raw.length);
         for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
@@ -131,12 +127,7 @@
       }
 
       function generateId() {
-        return (
-          "id-" +
-          Date.now().toString(16) +
-          "-" +
-          Math.random().toString(16).slice(2)
-        );
+        return "id-" + Date.now().toString(16) + "-" + Math.random().toString(16).slice(2);
       }
 
       // --- 1. Проверка API ---
@@ -162,8 +153,7 @@
       //        добавленного на экран «Домой» — обычная вкладка Safari не подходит) ---
 
       if (!("Notification" in window) || !("PushManager" in window)) {
-        const isIosOutsideHomeScreen =
-          "standalone" in navigator && navigator.standalone === false;
+        const isIosOutsideHomeScreen = "standalone" in navigator && navigator.standalone === false;
         const hint = isIosOutsideHomeScreen
           ? "добавьте страницу на экран «Домой» (Поделиться → «На экран Домой», нужен iOS 16.4+) и откройте её оттуда"
           : "push не поддерживается в этом браузере";
@@ -219,11 +209,7 @@
 
       async function subscribeForPush() {
         if (!registration.pushManager) {
-          setStatus(
-            statusSubscription,
-            false,
-            "Push-подписка: Push API не поддерживается",
-          );
+          setStatus(statusSubscription, false, "Push-подписка: Push API не поддерживается");
           return;
         }
         setStatus(statusSubscription, false, "Push-подписка: подключение…");
@@ -238,22 +224,14 @@
           setStatus(statusSubscription, true, "Push-подписка: ✓");
           btnSchedule.disabled = false;
         } catch (err) {
-          setStatus(
-            statusSubscription,
-            false,
-            "Push-подписка: ошибка — " + err.message,
-          );
+          setStatus(statusSubscription, false, "Push-подписка: ошибка — " + err.message);
         }
       }
 
       if (Notification.permission === "granted") {
         await subscribeForPush();
       } else {
-        setStatus(
-          statusSubscription,
-          false,
-          "Push-подписка: ожидает разрешения",
-        );
+        setStatus(statusSubscription, false, "Push-подписка: ожидает разрешения");
       }
 
       // --- 7. Получение push-сообщений от SW ---
@@ -263,8 +241,7 @@
           const { title, body, receivedAt } = event.data.payload;
           const time = new Date(receivedAt).toLocaleTimeString();
           const li = document.createElement("li");
-          li.textContent =
-            time + " — " + (title || "") + (body ? ": " + body : "");
+          li.textContent = time + " — " + (title || "") + (body ? ": " + body : "");
           receivedList.prepend(li);
         }
       });
@@ -296,16 +273,11 @@
 
           if (!res.ok) {
             const text = await res.text();
-            showError(
-              "Ошибка: HTTP " + res.status + (text ? " — " + text : ""),
-            );
+            showError("Ошибка: HTTP " + res.status + (text ? " — " + text : ""));
             return;
           }
 
-          showSuccess(
-            "Уведомление запланировано на " +
-              new Date(datetime).toLocaleString(),
-          );
+          showSuccess("Уведомление запланировано на " + new Date(datetime).toLocaleString());
           inputTitle.value = "";
           inputBody.value = "";
           inputDatetime.value = "";

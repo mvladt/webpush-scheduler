@@ -22,7 +22,7 @@ const pusher = createWebPusher(
       publicKey: vapidPublicKey,
     },
   },
-  logger
+  logger,
 );
 
 const scheduler = createNotificationScheduler(store, pusher, logger, {

@@ -15,7 +15,7 @@ export const loadEnv = async (envPath: string = ".env"): Promise<EnvConfig> => {
   } catch {
     console.warn(
       "[env] .env not found — generating VAPID keys. " +
-        "If push subscriptions exist, they will become invalid."
+        "If push subscriptions exist, they will become invalid.",
     );
 
     const { publicKey, privateKey } = webPush.generateVAPIDKeys();

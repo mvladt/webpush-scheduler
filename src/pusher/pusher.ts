@@ -4,16 +4,13 @@ import type { NotificationEntity } from "../types.ts";
 import type { Logger } from "../logger/types.ts";
 import type { VapidOptions, WebPusher } from "./types.ts";
 
-export const createWebPusher = (
-  vapidOptions: VapidOptions,
-  logger: Logger
-): WebPusher => {
+export const createWebPusher = (vapidOptions: VapidOptions, logger: Logger): WebPusher => {
   const sendOne = async (notification: NotificationEntity): Promise<void> => {
     try {
       const result = await webpush.sendNotification(
         notification.subscription,
         JSON.stringify(notification.payload),
-        vapidOptions
+        vapidOptions,
       );
       logger.log(`Notification sent. Status: ${result.statusCode}`);
     } catch (error) {
@@ -22,9 +19,7 @@ export const createWebPusher = (
     }
   };
 
-  const sendMany = async (
-    notifications: NotificationEntity[]
-  ): Promise<void> => {
+  const sendMany = async (notifications: NotificationEntity[]): Promise<void> => {
     const promises = notifications.map(async (notification) => {
       await sendOne(notification);
     });

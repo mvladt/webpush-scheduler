@@ -1,10 +1,6 @@
 import type { NotificationEntity, NotificationStore } from "../types.ts";
 import type { WebPusher } from "../pusher/types.ts";
-import type {
-  NotificationScheduler,
-  SchedulerOptions,
-  SchedulerState,
-} from "./types.ts";
+import type { NotificationScheduler, SchedulerOptions, SchedulerState } from "./types.ts";
 import type { Logger } from "../logger/types.ts";
 
 // Максимальное "терпимое" опоздание: наступившие уведомления отправляем,
@@ -19,7 +15,7 @@ export const createNotificationScheduler = (
   store: NotificationStore,
   pusher: WebPusher,
   logger: Logger,
-  options: SchedulerOptions = { intervalMs: 1000 }
+  options: SchedulerOptions = { intervalMs: 1000 },
 ): NotificationScheduler => {
   const { intervalMs } = options;
 
@@ -36,9 +32,7 @@ export const createNotificationScheduler = (
     // Отправляем только не сильно просроченные; протухшие тихо отбрасываем
     // (они всё равно удаляются ниже, чтобы не копиться в хранилище).
     const now = Date.now();
-    const fresh = due.filter(
-      (n) => now - new Date(n.datetime).getTime() <= GRACE_MS
-    );
+    const fresh = due.filter((n) => now - new Date(n.datetime).getTime() <= GRACE_MS);
 
     // В этом месте может быть проблема, если операции не выполнятся до следующего запуска work(), через intervalMs.
     await pusher.sendMany(fresh);

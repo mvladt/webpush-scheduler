@@ -10,7 +10,7 @@ import type { Logger } from "../logger/types.ts";
 export const createRouter = (
   scheduler: NotificationScheduler,
   pusher: WebPusher,
-  logger: Logger
+  logger: Logger,
 ) => {
   const router = Router();
 

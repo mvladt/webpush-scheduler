@@ -37,15 +37,12 @@ describe("Приложенька, App", () => {
       await app.start();
 
       const port = app.getPort();
-      const response = await fetch(
-        `http://localhost:${port}/api/notifications`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(notification),
-          signal: AbortSignal.timeout(5000),
-        }
-      );
+      const response = await fetch(`http://localhost:${port}/api/notifications`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(notification),
+        signal: AbortSignal.timeout(5000),
+      });
 
       // Assert
       assert.equal(response.status, 201);
@@ -62,13 +59,10 @@ describe("Приложенька, App", () => {
       await app.start();
 
       const port = app.getPort();
-      const response = await fetch(
-        `http://localhost:${port}/api/notifications`,
-        {
-          method: "POST",
-          signal: AbortSignal.timeout(5000),
-        }
-      );
+      const response = await fetch(`http://localhost:${port}/api/notifications`, {
+        method: "POST",
+        signal: AbortSignal.timeout(5000),
+      });
       const responseText = await response.text();
 
       // Assert

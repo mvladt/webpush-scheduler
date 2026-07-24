@@ -47,7 +47,12 @@
       "get": {
         "summary": "Получить уведомление по ID",
         "parameters": [
-          { "name": "notificationId", "in": "path", "required": true, "schema": { "type": "string" } }
+          {
+            "name": "notificationId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
         ],
         "responses": {
           "500": { "description": "Не реализовано" }
@@ -56,7 +61,12 @@
       "patch": {
         "summary": "Обновить уведомление",
         "parameters": [
-          { "name": "notificationId", "in": "path", "required": true, "schema": { "type": "string" } }
+          {
+            "name": "notificationId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
         ],
         "responses": {
           "500": { "description": "Не реализовано" }
@@ -65,7 +75,12 @@
       "delete": {
         "summary": "Удалить уведомление",
         "parameters": [
-          { "name": "notificationId", "in": "path", "required": true, "schema": { "type": "string" } }
+          {
+            "name": "notificationId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
         ],
         "responses": {
           "204": { "description": "Удалено" },

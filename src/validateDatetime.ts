@@ -8,7 +8,7 @@ export const validateDatetime = (datetime: string): void => {
   }
   if (String(new Date(datetime)) === "Invalid Date") {
     throw new Error(
-      "Параметр 'datetime' — значение некорректно. Должно быть в формате `YYYY-MM-DDTHH:mm:ss.sssZ`."
+      "Параметр 'datetime' — значение некорректно. Должно быть в формате `YYYY-MM-DDTHH:mm:ss.sssZ`.",
     );
   }
 };

@@ -10,9 +10,7 @@ type Row = {
   subscription: string; // JSON
 };
 
-export const createSqliteStore = (
-  filename: string = "notifications.db"
-): NotificationStore => {
+export const createSqliteStore = (filename: string = "notifications.db"): NotificationStore => {
   const db = new DatabaseSync(filename);
 
   db.exec(`
@@ -28,13 +26,11 @@ export const createSqliteStore = (
 
   const insertOne = db.prepare(
     `INSERT OR REPLACE INTO notifications (id, payload, datetime, subscription)
-     VALUES (@id, @payload, @datetime, @subscription)`
+     VALUES (@id, @payload, @datetime, @subscription)`,
   );
   const deleteOne = db.prepare(`DELETE FROM notifications WHERE id = ?`);
   const selectOne = db.prepare(`SELECT * FROM notifications WHERE id = ?`);
-  const selectDue = db.prepare(
-    `SELECT * FROM notifications WHERE datetime <= ?`
-  );
+  const selectDue = db.prepare(`SELECT * FROM notifications WHERE datetime <= ?`);
 
   const deleteMany = (ids: string[]) => {
     db.exec("BEGIN");

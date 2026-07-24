@@ -8,8 +8,7 @@ import { loadEnv } from "../../src/env.ts";
 
 const ENV_KEYS = ["PORT", "VAPID_SUBJECT", "VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY"];
 
-const saveEnv = () =>
-  Object.fromEntries(ENV_KEYS.map((k) => [k, process.env[k]]));
+const saveEnv = () => Object.fromEntries(ENV_KEYS.map((k) => [k, process.env[k]]));
 
 const restoreEnv = (saved: Record<string, string | undefined>) => {
   for (const [k, v] of Object.entries(saved)) {
